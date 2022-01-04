@@ -12,46 +12,67 @@ We use two existing dataset to do the experiments: KITTI and Ford-AV. For our co
 - KITTI: Please first download the raw data (ground images) from http://www.cvlibs.net/datasets/kitti/raw_data.php, and store them according to different date (not category). 
 Your dataset folder structure should be like: 
 
-KITTI:\\
+KITTI:
+
   raw_data:
+  
     2011_09_26:
+    
       2011_09_26_drive_0001_sync:
+      
         image_00:
+	
 	image_01:
+	
 	image_02:
+	
 	image_03:
+	
 	oxts:
+	
       ...
+      
     2011_09_28:
+    
     2011_09_29:
+    
     2011_09_30:
+    
     2011_10_03:
   
   satmap:
+  
     2011_09_26:
+    
     2011_09_29:
+    
     2011_09_30:
+    
     2011_10_03:
 
 - Ford-AV: The ground images and camera calibration files can be accessed from https://avdata.ford.com/downloads/default.aspx. Please follow their original structure to save them on your computer. For the satellite images, please put them under their corresponding log folder. Here is an example:
 
-- ![#f03c15](https://via.placeholder.com/15/f03c15/000000?text=+) `#f03c15`
-
 
 Ford:
+
   2017-08-04:
+  
     V2:
+    
       Log1:
+      
         2017-08-04-V2-Log1-FL
-        <span style="color:red">SatelliteMaps_18:</span>
-        <span style="color:red">grd_sat_quaternion_latlon.txt</span>
-        <span style="color:red">grd_sat_quaternion_latlon_test.txt.txt</span>
+	
+        SatelliteMaps_18:
+	
+        grd_sat_quaternion_latlon.txt
+	
+        grd_sat_quaternion_latlon_test.txt
 
   2017-10-26:
+  
   Calibration-V2:
 
-Foders or files marked as <span style="color:red">red</span> will be provided by us. Others can be accessed from their offial website. 
-      
 
 
 ### Codes
@@ -60,25 +81,41 @@ Codes for training and testing on unknown orientation (train_grd_noise=360) and 
 1. Training:
 
     python train_kitti.py --batch_size 1 --train_damping 0 --using_weight 0
+    
     python train_kitti.py --batch_size 1 --train_damping 0 --using_weight 0
 
+
     python train_ford.py --batch_size 1 --train_log_start 0 --train_log_end 1 --train_damping 0 --using_weight 0
+    
     python train_ford.py --batch_size 1 --train_log_start 1 --train_log_end 2 --train_damping 0 --using_weight 0
+    
     python train_ford.py --batch_size 1 --train_log_start 2 --train_log_end 3 --train_damping 0 --using_weight 0
+    
     python train_ford.py --batch_size 1 --train_log_start 3 --train_log_end 4 --train_damping 0 --using_weight 0
+    
     python train_ford.py --batch_size 1 --train_log_start 4 --train_log_end 5 --train_damping 0 --using_weight 0
+    
     python train_ford.py --batch_size 1 --train_log_start 5 --train_log_end 6 --train_damping 0 --using_weight 0
 
 2. Evaluation:
-    python train_kitti.py --batch_size 1 --train_damping 0 --using_weight 0 --test 1
+
     python train_kitti.py --batch_size 1 --train_damping 0 --using_weight 0 --test 1
     
+    python train_kitti.py --batch_size 1 --train_damping 0 --using_weight 0 --test 1
+    
+    
     python train_ford.py --batch_size 1 --train_log_start 0 --train_log_end 1 --train_damping 0 --using_weight 0 --test 1
+    
     python train_ford.py --batch_size 1 --train_log_start 1 --train_log_end 2 --train_damping 0 --using_weight 0 --test 1
+    
     python train_ford.py --batch_size 1 --train_log_start 2 --train_log_end 3 --train_damping 0 --using_weight 0 --test 1
+    
     python train_ford.py --batch_size 1 --train_log_start 3 --train_log_end 4 --train_damping 0 --using_weight 0 --test 1
+    
     python train_ford.py --batch_size 1 --train_log_start 4 --train_log_end 5 --train_damping 0 --using_weight 0 --test 1
+    
     python train_ford.py --batch_size 1 --train_log_start 5 --train_log_end 6 --train_damping 0 --using_weight 0 --test 1
+
 
 You are free to change batch size according to your own GPU memory. 
 
