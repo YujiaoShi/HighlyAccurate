@@ -12,7 +12,7 @@ We use two existing dataset to do the experiments: KITTI and Ford-AV. For our co
 - KITTI: Please first download the raw data (ground images) from http://www.cvlibs.net/datasets/kitti/raw_data.php, and store them according to different date (not category). 
 Your dataset folder structure should be like: 
 
-KITTI:
+KITTI:\\
   raw_data:
     2011_09_26:
       2011_09_26_drive_0001_sync:
