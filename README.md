@@ -1,7 +1,7 @@
 # Beyond Cross-view Image Retrieval: Highly Accurate Vehicle Localization Using Satellite Image
 
 This contains the codes for cross-view geo-localization method described in: Where am I looking at? Joint Location and Orientation Estimation by Cross-View Matching, CVPR2020. 
-![alt text](./Framework.png)
+![Framework](./Framework.pdf){width=85%}
 
 # Abstract
 This paper addresses the problem of vehicle-mounted {\em camera localization} by matching a ground-level image with an overhead-view satellite map.  Existing methods often treat this problem as cross-view {\em image retrieval}, and use learned deep features to match the ground-level query image to a partition (\eg, a small patch) of the satellite map. By these methods, the localization accuracy is limited by the partitioning density of the satellite map (often in the order of tens meters).  Departing from the conventional wisdom of image retrieval, this paper presents a novel solution that can achieve highly-accurate localization. The key idea is to formulate the task as pose estimation and solve it by neural-net based optimization. Specifically, we design a two-branch {CNN} to extract robust features from the ground and satellite images, respectively. To bridge the vast cross-view domain gap, we resort to a Geometry Projection module that projects features from the satellite map to the ground-view, based on a relative camera pose. Aiming to minimize the differences between the projected features and the observed features, we employ a differentiable Levenberg-Marquardt ({LM}) module to search for the optimal camera pose iteratively. The entire pipeline is differentiable and runs end-to-end. 
