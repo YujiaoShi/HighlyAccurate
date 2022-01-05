@@ -1,6 +1,5 @@
-# Beyond Cross-view Image Retrieval: Highly Accurate Vehicle Localization Using Satellite Image
+# Beyond Cross-view Image Retrieval: Highly Accurate Vehicle Localization Using Satellite Image, CVPR 2022
 
-This contains the codes for cross-view geo-localization method described in: Where am I looking at? Joint Location and Orientation Estimation by Cross-View Matching, CVPR2020. 
 ![Framework](./Framework.png)
 
 # Abstract
