@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Dec  6 16:14:01 2020
 
-@author: loocy
-"""
 import numpy as np
 import torch
 
