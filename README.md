@@ -128,9 +128,10 @@ This work is published in CVPR 2022.
 [Beyond Cross-view Image Retrieval: Highly Accurate Vehicle Localization Using Satellite Image]
 
 If you are interested in our work and use our code, we are pleased that you can cite the following publication:  
+
 *Yujiao Shi, and Hongdong Li. Beyond Cross-view Image Retrieval: Highly Accurate Vehicle Localization Using Satellite Image.*
 
-@inproceedings{shi2020where,
+@inproceedings{shi2020beyond,
   title={Beyond Cross-view Image Retrieval: Highly Accurate Vehicle Localization Using Satellite Image},
   author={Shi, Yujiao and Li, Hongdong},
   booktitle={Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition},
