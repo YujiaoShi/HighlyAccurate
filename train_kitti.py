@@ -43,7 +43,7 @@ def test1(net_test, args, save_path, best_rank_result, epoch):
 
     start_time = time.time()
     for i, data in enumerate(dataloader, 0):
-        sat_map, left_camera_k, grd_left_imgs, gt_shift_u, gt_shift_v, gt_heading, gt_depth = [item.to(device) for item in data[:-1]]
+        sat_map, left_camera_k, grd_left_imgs, gt_shift_u, gt_shift_v, gt_heading = [item.to(device) for item in data[:-1]]
 
         if args.direction == 'S2GP':
             shifts_lat, shifts_lon, theta = net_test(sat_map, grd_left_imgs, mode='test')
@@ -185,7 +185,7 @@ def test2(net_test, args, save_path, best_rank_result, epoch):
     start_time = time.time()
 
     for i, data in enumerate(dataloader, 0):
-        sat_map, left_camera_k, grd_left_imgs, gt_shift_u, gt_shift_v, gt_heading, gt_depth = [item.to(device) for item in data[:-1]]
+        sat_map, left_camera_k, grd_left_imgs, gt_shift_u, gt_shift_v, gt_heading = [item.to(device) for item in data[:-1]]
 
         # shifts_lat, shifts_lon, theta = net_test(sat_map, grd_left_imgs, mode='test')
         if args.direction == 'S2GP':
@@ -344,7 +344,7 @@ def train(net, lr, args, save_path):
         for Loop, Data in enumerate(trainloader, 0):
             # get the inputs
 
-            sat_map, left_camera_k, grd_left_imgs, gt_shift_u, gt_shift_v, gt_heading, gt_depth = [item.to(device) for item in Data[:-1]]
+            sat_map, left_camera_k, grd_left_imgs, gt_shift_u, gt_shift_v, gt_heading = [item.to(device) for item in Data[:-1]]
             file_name = Data[-1]
 
             # zero the parameter gradients
