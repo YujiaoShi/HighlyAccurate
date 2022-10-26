@@ -64,6 +64,7 @@ class SatGrdDataset(Dataset):
 
         with open(file, 'r') as f:
             file_name = f.readlines()
+        self.file_name = [file[:-1] for file in file_name]
 
     def __len__(self):
         return len(self.file_name)
@@ -122,6 +123,7 @@ class SatGrdDataset(Dataset):
                     grd_img_left = GrdImg.convert('RGB')
                     if self.grdimage_transform is not None:
                         grd_img_left = self.grdimage_transform(grd_img_left)
+                grd_left_imgs = torch.cat([grd_left_imgs, grd_img_left.unsqueeze(0)], dim=0)
 
         sat_rot = sat_map.rotate(-heading / np.pi * 180)
         sat_align_cam = sat_rot.transform(sat_rot.size, Image.AFFINE,
@@ -189,6 +191,7 @@ class SatGrdDatasetTest(Dataset):
 
         with open(file, 'r') as f:
             file_name = f.readlines()
+        self.file_name = [file[:-1] for file in file_name]
 
     def __len__(self):
         return len(self.file_name)
