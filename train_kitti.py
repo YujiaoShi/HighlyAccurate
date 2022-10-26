@@ -355,7 +355,7 @@ def train(net, lr, args, save_path):
                 shift_lat_last, shift_lon_last, theta_last, \
                 L1_loss, L2_loss, L3_loss, L4_loss, grd_conf_list = \
                     net(sat_map, grd_left_imgs, gt_shift_u, gt_shift_v, gt_heading, mode='train', file_name=file_name,
-                        gt_depth=gt_depth, loop=Loop, level_first=args.level_first)
+                        loop=Loop, level_first=args.level_first)
             elif args.direction =='G2SP':
                 loss, loss_decrease, shift_lat_decrease, shift_lon_decrease, thetas_decrease, loss_last, \
                 shift_lat_last, shift_lon_last, theta_last, \
