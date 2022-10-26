@@ -24,7 +24,6 @@ grdimage_dir = 'raw_data'
 left_color_camera_dir = 'image_02/data'  # 'image_02\\data' #
 right_color_camera_dir = 'image_03/data'  # 'image_03\\data' #
 oxts_dir = 'oxts/data'  # 'oxts\\data' #
-depth_dir = 'depth/data_depth_annotated/train/'
 
 GrdImg_H = 256  # 256 # original: 375 #224, 256
 GrdImg_W = 1024  # 1024 # original:1242 #1248, 1024
@@ -37,19 +36,6 @@ train_file = './dataLoader/train_files.txt'
 test1_file = './dataLoader/test1_files.txt'
 test2_file = './dataLoader/test2_files.txt'
 
-
-def depth_read(filename):
-    # loads depth map D from png file
-    # and returns it as a numpy array,
-    # for details see readme.txt
-
-    depth_png = np.array(Image.open(filename), dtype=int)
-    # make sure we have a proper 16bit depth map here.. not 8bit!
-    assert(np.max(depth_png) > 255)
-
-    depth = depth_png.astype(np.float) / 256.
-    depth[depth_png == 0] = -1.
-    return depth
 
 
 class SatGrdDataset(Dataset):
@@ -78,24 +64,6 @@ class SatGrdDataset(Dataset):
 
         with open(file, 'r') as f:
             file_name = f.readlines()
-
-        # np.random.seed(2022)
-        # num = len(file_name)//3
-        # random.shuffle(file_name)
-        # self.file_name = [file[:-1] for file in file_name[:num]]
-        self.file_name = [file[:-1] for file in file_name]
-        # self.file_name = []
-        # count = 0
-        # for file in file_name:
-        #     left_depth_name = os.path.join(self.root, depth_dir, file.split('/')[1],
-        #                                    'proj_depth/groundtruth/image_02', os.path.basename(file.strip()))
-        #     if os.path.exists(left_depth_name):
-        #         self.file_name.append(file.strip())
-        #     else:
-        #         count += 1
-        #
-        # print('number of files whose depth unavailable: ', count)
-
 
     def __len__(self):
         return len(self.file_name)
@@ -137,7 +105,6 @@ class SatGrdDataset(Dataset):
 
         # =================== initialize some required variables ============================
         grd_left_imgs = torch.tensor([])
-        grd_left_depths = torch.tensor([])
         image_no = file_name[38:]
 
         # oxt: such as 0000000000.txt
@@ -155,15 +122,6 @@ class SatGrdDataset(Dataset):
                     grd_img_left = GrdImg.convert('RGB')
                     if self.grdimage_transform is not None:
                         grd_img_left = self.grdimage_transform(grd_img_left)
-
-                left_depth_name = os.path.join(self.root, depth_dir, file_name.split('/')[1], 'proj_depth/groundtruth/image_02', image_no)
-
-                left_depth = torch.tensor(depth_read(left_depth_name), dtype=torch.float32)
-                left_depth = F.interpolate(left_depth[None, None, :, :], (GrdImg_H, GrdImg_W))
-                left_depth = left_depth[0, 0]
-
-                grd_left_imgs = torch.cat([grd_left_imgs, grd_img_left.unsqueeze(0)], dim=0)
-                grd_left_depths = torch.cat([grd_left_depths, left_depth.unsqueeze(0)], dim=0)
 
         sat_rot = sat_map.rotate(-heading / np.pi * 180)
         sat_align_cam = sat_rot.transform(sat_rot.size, Image.AFFINE,
@@ -200,7 +158,6 @@ class SatGrdDataset(Dataset):
                torch.tensor(-gt_shift_x, dtype=torch.float32).reshape(1), \
                torch.tensor(-gt_shift_y, dtype=torch.float32).reshape(1), \
                torch.tensor(theta, dtype=torch.float32).reshape(1), \
-               grd_left_depths[0], \
                file_name
 
 
@@ -232,25 +189,6 @@ class SatGrdDatasetTest(Dataset):
 
         with open(file, 'r') as f:
             file_name = f.readlines()
-
-        # np.random.seed(2022)
-        # num = len(file_name)//3
-        # random.shuffle(file_name)
-        # self.file_name = [file[:-1] for file in file_name[:num]]
-        self.file_name = [file[:-1] for file in file_name]
-        # self.file_name = []
-        # count = 0
-        # for line in file_name:
-        #     file = line.split(' ')[0]
-        #     left_depth_name = os.path.join(self.root, depth_dir, file.split('/')[1],
-        #                                    'proj_depth/groundtruth/image_02', os.path.basename(file.strip()))
-        #     if os.path.exists(left_depth_name):
-        #         self.file_name.append(line.strip())
-        #     else:
-        #         count += 1
-        #
-        # print('number of files whose depth unavailable: ', count)
-
 
     def __len__(self):
         return len(self.file_name)
@@ -293,8 +231,6 @@ class SatGrdDatasetTest(Dataset):
 
         # =================== initialize some required variables ============================
         grd_left_imgs = torch.tensor([])
-        grd_left_depths = torch.tensor([])
-        # image_no = file_name[38:]
 
         # oxt: such as 0000000000.txt
         oxts_file_name = os.path.join(self.root, grdimage_dir, drive_dir, oxts_dir,
@@ -312,15 +248,7 @@ class SatGrdDatasetTest(Dataset):
                 if self.grdimage_transform is not None:
                     grd_img_left = self.grdimage_transform(grd_img_left)
 
-            left_depth_name = os.path.join(self.root, depth_dir, file_name.split('/')[1],
-                                           'proj_depth/groundtruth/image_02', image_no)
-
-            left_depth = torch.tensor(depth_read(left_depth_name), dtype=torch.float32)
-            left_depth = F.interpolate(left_depth[None, None, :, :], (GrdImg_H, GrdImg_W))
-            left_depth = left_depth[0, 0]
-
             grd_left_imgs = torch.cat([grd_left_imgs, grd_img_left.unsqueeze(0)], dim=0)
-            grd_left_depths = torch.cat([grd_left_depths, left_depth.unsqueeze(0)], dim=0)
 
         sat_rot = sat_map.rotate(-heading / np.pi * 180)
         sat_align_cam = sat_rot.transform(sat_rot.size, Image.AFFINE,
@@ -360,7 +288,6 @@ class SatGrdDatasetTest(Dataset):
                torch.tensor(-gt_shift_x, dtype=torch.float32).reshape(1), \
                torch.tensor(-gt_shift_y, dtype=torch.float32).reshape(1), \
                torch.tensor(theta, dtype=torch.float32).reshape(1), \
-               grd_left_depths[0], \
                file_name
 
 
