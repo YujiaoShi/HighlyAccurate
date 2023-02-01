@@ -12,7 +12,8 @@ from torchvision import transforms
 from cfgnode import CfgNode
 import yaml
 
-Ford_root = '/media/yujiao/6TB/dataset/Ford/'
+# Ford_root = '/media/yujiao/6TB/dataset/Ford/'
+Ford_root = '/mnt/workspace/users/leekt/Ford-Satellite'
 satmap_dir = 'SatelliteMaps_18'
 data_file = 'grd_sat_quaternion_latlon.txt'
 data_file_test = 'grd_sat_quaternion_latlon_test.txt'
@@ -20,40 +21,50 @@ pose_file_dir = 'Calibration-V2/V2/'
 FL_ex = 'cameraFrontLeft_body.yaml'
 FL_in = 'cameraFrontLeftIntrinsics.yaml'
 
-train_logs = [
-              '2017-10-26/V2/Log1',
-              '2017-10-26/V2/Log2',
-              '2017-08-04/V2/Log3',
-              '2017-10-26/V2/Log4',
-              '2017-08-04/V2/Log5',
-              '2017-08-04/V2/Log6',
-              ]
+# train_logs = [
+#               '2017-10-26/V2/Log1',
+#               '2017-10-26/V2/Log2',
+#               '2017-08-04/V2/Log3',
+#               '2017-10-26/V2/Log4',
+#               '2017-08-04/V2/Log5',
+#               '2017-08-04/V2/Log6',
+#               ]
+
+train_logs = ['2017-08-04/Log1']
+
+# train_logs_img_inds = [
+#     list(range(4500, 8500)),
+#     list(range(3150)) + list(range(6000, 9200)) + list(range(11000, 15000)),
+#     list(range(1500)),
+#     list(range(7466)),
+#     list(range(3200)) + list(range(5300, 9900)) + list(range(10500, 11130)),
+#     list(range(1000, 3500)) + list(range(4500, 5000)) + list(range(7000, 7857)),
+#                        ]
 
 train_logs_img_inds = [
-    list(range(4500, 8500)),
-    list(range(3150)) + list(range(6000, 9200)) + list(range(11000, 15000)),
-    list(range(1500)),
-    list(range(7466)),
-    list(range(3200)) + list(range(5300, 9900)) + list(range(10500, 11130)),
-    list(range(1000, 3500)) + list(range(4500, 5000)) + list(range(7000, 7857)),
-                       ]
+    list(range(4500, 4510))]
 
-test_logs = [
-             '2017-08-04/V2/Log1',
-             '2017-08-04/V2/Log2',
-             '2017-08-04/V2/Log3',
-             '2017-08-04/V2/Log4',
-             '2017-10-26/V2/Log5',
-             '2017-10-26/V2/Log6',
-]
-test_logs_img_inds = [
-    list(range(100, 200)) + list(range(5000, 5500)) + list(range(7000, 8500)),
-    list(range(2500, 3000)) + list(range(8500, 10500)) + list(range(12500, 13727)),
-    list(range(3500, 5000)),
-    list(range(1500, 2500)) + list(range(4000, 4500)) + list(range(7000, 9011)),
-    list(range(3500)),
-    list(range(2000, 2500)) + list(range(3500, 4000)),
-]
+# test_logs = [
+#              '2017-08-04/V2/Log1',
+#              '2017-08-04/V2/Log2',
+#              '2017-08-04/V2/Log3',
+#              '2017-08-04/V2/Log4',
+#              '2017-10-26/V2/Log5',
+#              '2017-10-26/V2/Log6',
+# ]
+
+test_logs = ['2017-08-04/Log1']
+
+# test_logs_img_inds = [
+#     list(range(100, 200)) + list(range(5000, 5500)) + list(range(7000, 8500)),
+#     list(range(2500, 3000)) + list(range(8500, 10500)) + list(range(12500, 13727)),
+#     list(range(3500, 5000)),
+#     list(range(1500, 2500)) + list(range(4000, 4500)) + list(range(7000, 9011)),
+#     list(range(3500)),
+#     list(range(2000, 2500)) + list(range(3500, 4000)),
+# ]
+
+test_logs_img_inds = [list(range(1000, 1010))]
 
 # For the Ford dataset coordinates:
 # x--> North, y --> east, z --> down

@@ -407,13 +407,20 @@ def parse_args():
     parser.add_argument('--train_whole', type=int, default=0, help='0 or 1')
     parser.add_argument('--test_whole', type=int, default=0, help='0 or 1')
 
+    parser.add_argument('--use_default_model', type=int, default=0, help='0 or 1')
+
     args = parser.parse_args()
 
     return args
 
 
 def getSavePath(args):
-    save_path = './ModelsFord/LM_' + str(args.direction) \
+    path_prefix = ''
+    if args.use_default_model:
+        path_prefix = '/mnt/workspace/datasets/yujiao_data/Models/ModelsFord/LM_'
+    else:
+        path_prefix = './ModelsFord/LM_'
+    save_path = path_prefix + str(args.direction) \
                 + '/lat' + str(args.shift_range_lat) + 'm_lon' + str(args.shift_range_lon) + 'm_rot' + str(args.rotation_range) \
                 + '_Lev' + str(args.level) + '_Nit' + str(args.N_iters) \
                 + '_Wei' + str(args.using_weight) \
@@ -461,6 +468,8 @@ if __name__ == '__main__':
 
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
+        # device = torch.device("cpu")
+
     else:
         device = torch.device("cpu")
 
