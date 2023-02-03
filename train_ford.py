@@ -467,10 +467,12 @@ if __name__ == '__main__':
     # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
     if torch.cuda.is_available():
+        print("Training ford using GPU")
         device = torch.device("cuda:0")
         # device = torch.device("cpu")
 
     else:
+        print("Training ford using CPU")
         device = torch.device("cpu")
 
     np.random.seed(2022)

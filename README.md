@@ -1,3 +1,12 @@
+# New content from leekt
+### Docker command
+1. Enter the docker folder `cd docker`
+2. Build docker image: `docker build --tag satellite_slam/pytorch_env .`
+3. Build docker environment: `chmod +x build_docker_container.sh && ./build_docker_container.sh satellite_slam`. Please enter `exit` once entering the container, we will rerun it below to be consistent.
+4. Start existing docker: `docker start satellite_slam`
+5. Execute the container: `docker exec -it -u root satellite_slam bash` 
+6. You should be albe to develop inside the container
+
 # Beyond Cross-view Image Retrieval: Highly Accurate Vehicle Localization Using Satellite Image, CVPR 2022
 
 ![Framework](./Framework.png)
