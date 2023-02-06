@@ -15,7 +15,8 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-root_dir = '/media/yujiao/6TB/dataset/Kitti1' # '../../data/Kitti' # '../Data' #'..\\Data' #
+# root_dir = '/media/yujiao/6TB/dataset/Kitti1' # '../../data/Kitti' # '../Data' #'..\\Data' #
+root_dir = '/mnt/workspace/users/leekt/kitti-raw' # '../../data/Kitti' # '../Data' #'..\\Data' #
 
 test_csv_file_name = 'test.csv'
 ignore_csv_file_name = 'ignore.csv'
@@ -32,7 +33,8 @@ GrdOriImg_W = 1242
 num_thread_workers = 2
 
 # train_file = './dataLoader/train_files.txt'
-train_file = './dataLoader/train_files.txt'
+# train_file = './dataLoader/train_files.txt'
+train_file = './dataLoader/train_files_leekt.txt'
 test1_file = './dataLoader/test1_files.txt'
 test2_file = './dataLoader/test2_files.txt'
 

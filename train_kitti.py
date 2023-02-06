@@ -426,7 +426,7 @@ def train(net, lr, args, save_path):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--resume', type=int, default=0, help='resume the trained model')
-    parser.add_argument('--test', type=int, default=1, help='test with trained model')
+    parser.add_argument('--test', type=int, default=0, help='test with trained model')
     parser.add_argument('--debug', type=int, default=0, help='debug to dump middle processing images')
 
     parser.add_argument('--epochs', type=int, default=5, help='number of training epochs')
