@@ -15,30 +15,26 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-# root_dir = '/media/yujiao/6TB/dataset/Kitti1' # '../../data/Kitti' # '../Data' #'..\\Data' #
-root_dir = '/mnt/workspace/users/leekt/kitti-raw' # '../../data/Kitti' # '../Data' #'..\\Data' #
+root_dir = '/mnt/workspace/datasets/kitti-360-SLAM' # '../../data/Kitti' # '../Data' #'..\\Data' #
 
-test_csv_file_name = 'test.csv'
-ignore_csv_file_name = 'ignore.csv'
 satmap_dir = 'satmap'
-grdimage_dir = 'raw_data'
-left_color_camera_dir = 'image_02/data'  # 'image_02\\data' #
-right_color_camera_dir = 'image_03/data'  # 'image_03\\data' #
-oxts_dir = 'oxts/data'  # 'oxts\\data' #
+calibration_dir = 'KITTI-360/calibration'
+grdimage_dir = 'KITTI-360/data_2d_raw'
+left_color_camera_dir = 'image_00/data_rect'  # 'image_02\\data' #
+right_color_camera_dir = 'image_01/data_rect'  # 'image_03\\data' #
+pose_dir = 'KITTI-360/data_poses'
+oxts_dir = 'oxts/data'
 
-GrdImg_H = 256  # 256 # original: 375 #224, 256
-GrdImg_W = 1024  # 1024 # original:1242 #1248, 1024
-GrdOriImg_H = 375
-GrdOriImg_W = 1242
+GrdImg_H = 256
+GrdImg_W = 1024
+GrdOriImg_H = 376
+GrdOriImg_W = 1408
 num_thread_workers = 2
 
-# train_file = './dataLoader/train_files.txt'
-# train_file = './dataLoader/train_files.txt'
-train_file = './dataLoader/train_files_leekt.txt'
-test1_file = './dataLoader/test1_files_leekt.txt'
-test2_file = './dataLoader/test2_files_leekt.txt'
-# test1_file = './dataLoader/test1_files.txt'
-# test2_file = './dataLoader/test2_files.txt'
+# train_file = './dataLoader/train_kitti_360.txt'
+# test_file = './dataLoader/test_kitti_360.txt'
+train_file = './dataLoader/kitti_360_train.txt'
+test_file = './dataLoader/kitti_360_test.txt'
 
 
 
@@ -80,17 +76,20 @@ class SatGrdDataset(Dataset):
         # read cemera k matrix from camera calibration files, day_dir is first 10 chat of file name
 
         file_name = self.file_name[idx]
-        day_dir = file_name[:10]
-        drive_dir = file_name[:38]
-        image_no = file_name[38:]
+        # day_dir = file_name[:10]
+        # drive_dir = file_name[:38]
+        # image_no = file_name[38:]
+        drive_dir = file_name[:26]
+        image_no = file_name[46:]
 
         # =================== read camera intrinsice for left and right cameras ====================
-        calib_file_name = os.path.join(self.root, grdimage_dir, day_dir, 'calib_cam_to_cam.txt')
+        calib_file_name = os.path.join(self.root, calibration_dir, 'calib_cam_to_pose.txt')
         with open(calib_file_name, 'r') as f:
             lines = f.readlines()
             for line in lines:
+                # print("line = ", line)
                 # left color camera k matrix
-                if 'P_rect_02' in line:
+                if 'image_00' in line:
                     # get 3*3 matrix from P_rect_**:
                     items = line.split(':')
                     valus = items[1].strip().split(' ')
@@ -101,19 +100,20 @@ class SatGrdDataset(Dataset):
                     left_camera_k = [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
                     left_camera_k = torch.from_numpy(np.asarray(left_camera_k, dtype=np.float32))
                     # if not self.stereo:
+
+                    # print("left_camera_k = ", left_camera_k)
                     break
 
         # =================== read satellite map ===================================
-        SatMap_name = os.path.join(self.root, self.satmap_dir, file_name)
+        SatMap_name = os.path.join(self.root, self.satmap_dir, drive_dir, image_no.lower())
         with Image.open(SatMap_name, 'r') as SatMap:
             sat_map = SatMap.convert('RGB')
 
         # =================== initialize some required variables ============================
         grd_left_imgs = torch.tensor([])
-        image_no = file_name[38:]
 
         # oxt: such as 0000000000.txt
-        oxts_file_name = os.path.join(self.root, grdimage_dir, drive_dir, oxts_dir,
+        oxts_file_name = os.path.join(self.root, pose_dir, drive_dir, oxts_dir,
                                       image_no.lower().replace('.png', '.txt'))
         with open(oxts_file_name, 'r') as f:
                 content = f.readline().split(' ')
@@ -121,7 +121,7 @@ class SatGrdDataset(Dataset):
                 heading = float(content[5])
                 heading = torch.from_numpy(np.asarray(heading))
 
-                left_img_name = os.path.join(self.root, self.pro_grdimage_dir, drive_dir, left_color_camera_dir,
+                left_img_name = os.path.join(self.root, grdimage_dir, drive_dir, left_color_camera_dir,
                                              image_no.lower())
                 with Image.open(left_img_name, 'r') as GrdImg:
                     grd_img_left = GrdImg.convert('RGB')
@@ -208,17 +208,18 @@ class SatGrdDatasetTest(Dataset):
 
         line = self.file_name[idx]
         file_name, gt_shift_x, gt_shift_y, theta = line.split(' ')
-        day_dir = file_name[:10]
-        drive_dir = file_name[:38]
-        image_no = file_name[38:]
+        drive_dir = file_name[:26]
+        image_no = file_name[46:]
+        # print("drive_dir = ", drive_dir)
+        # print("image_no = ", image_no)
 
         # =================== read camera intrinsice for left and right cameras ====================
-        calib_file_name = os.path.join(self.root, grdimage_dir, day_dir, 'calib_cam_to_cam.txt')
+        calib_file_name = os.path.join(self.root, calibration_dir, 'calib_cam_to_pose.txt')
         with open(calib_file_name, 'r') as f:
             lines = f.readlines()
             for line in lines:
                 # left color camera k matrix
-                if 'P_rect_02' in line:
+                if 'image_00' in line:
                     # get 3*3 matrix from P_rect_**:
                     items = line.split(':')
                     valus = items[1].strip().split(' ')
@@ -232,7 +233,7 @@ class SatGrdDatasetTest(Dataset):
                     break
 
         # =================== read satellite map ===================================
-        SatMap_name = os.path.join(self.root, self.satmap_dir, file_name)
+        SatMap_name = os.path.join(self.root, self.satmap_dir, drive_dir, image_no.lower())
         with Image.open(SatMap_name, 'r') as SatMap:
             sat_map = SatMap.convert('RGB')
 
@@ -240,7 +241,7 @@ class SatGrdDatasetTest(Dataset):
         grd_left_imgs = torch.tensor([])
 
         # oxt: such as 0000000000.txt
-        oxts_file_name = os.path.join(self.root, grdimage_dir, drive_dir, oxts_dir,
+        oxts_file_name = os.path.join(self.root, pose_dir, drive_dir, oxts_dir,
                                       image_no.lower().replace('.png', '.txt'))
         with open(oxts_file_name, 'r') as f:
             content = f.readline().split(' ')
@@ -248,7 +249,7 @@ class SatGrdDatasetTest(Dataset):
             heading = float(content[5])
             heading = torch.from_numpy(np.asarray(heading))
 
-            left_img_name = os.path.join(self.root, self.pro_grdimage_dir, drive_dir, left_color_camera_dir,
+            left_img_name = os.path.join(self.root, grdimage_dir, drive_dir, left_color_camera_dir,
                                          image_no.lower())
             with Image.open(left_img_name, 'r') as GrdImg:
                 grd_img_left = GrdImg.convert('RGB')
@@ -325,7 +326,7 @@ def load_train_data(batch_size, shift_range_lat=20, shift_range_lon=20, rotation
     return train_loader
 
 
-def load_test1_data(batch_size, shift_range_lat=20, shift_range_lon=20, rotation_range=10):
+def load_test_data(batch_size, shift_range_lat=20, shift_range_lon=20, rotation_range=10):
     SatMap_process_sidelength = utils.get_process_satmap_sidelength()
 
     satmap_transform = transforms.Compose([
@@ -345,7 +346,7 @@ def load_test1_data(batch_size, shift_range_lat=20, shift_range_lon=20, rotation
     # np.random.seed(2022)
     # torch.manual_seed(2022)
 
-    test1_set = SatGrdDatasetTest(root=root_dir, file=test1_file,
+    test1_set = SatGrdDatasetTest(root=root_dir, file=test_file,
                             transform=(satmap_transform, grdimage_transform),
                             shift_range_lat=shift_range_lat,
                             shift_range_lon=shift_range_lon,
@@ -356,35 +357,35 @@ def load_test1_data(batch_size, shift_range_lat=20, shift_range_lon=20, rotation
     return test1_loader
 
 
-def load_test2_data(batch_size, shift_range_lat=20, shift_range_lon=20, rotation_range=10):
-    SatMap_process_sidelength = utils.get_process_satmap_sidelength()
+# def load_test2_data(batch_size, shift_range_lat=20, shift_range_lon=20, rotation_range=10):
+#     SatMap_process_sidelength = utils.get_process_satmap_sidelength()
 
-    satmap_transform = transforms.Compose([
-        transforms.Resize(size=[SatMap_process_sidelength, SatMap_process_sidelength]),
-        transforms.ToTensor(),
-    ])
+#     satmap_transform = transforms.Compose([
+#         transforms.Resize(size=[SatMap_process_sidelength, SatMap_process_sidelength]),
+#         transforms.ToTensor(),
+#     ])
 
-    Grd_h = GrdImg_H
-    Grd_w = GrdImg_W
+#     Grd_h = GrdImg_H
+#     Grd_w = GrdImg_W
 
-    grdimage_transform = transforms.Compose([
-        transforms.Resize(size=[Grd_h, Grd_w]),
-        transforms.ToTensor(),
-    ])
+#     grdimage_transform = transforms.Compose([
+#         transforms.Resize(size=[Grd_h, Grd_w]),
+#         transforms.ToTensor(),
+#     ])
 
-    # # Plz keep the following two lines!!! These are for fair test comparison.
-    # np.random.seed(2022)
-    # torch.manual_seed(2022)
+#     # # Plz keep the following two lines!!! These are for fair test comparison.
+#     # np.random.seed(2022)
+#     # torch.manual_seed(2022)
 
-    test2_set = SatGrdDatasetTest(root=root_dir, file=test2_file,
-                              transform=(satmap_transform, grdimage_transform),
-                              shift_range_lat=shift_range_lat,
-                              shift_range_lon=shift_range_lon,
-                              rotation_range=rotation_range)
+#     test2_set = SatGrdDatasetTest(root=root_dir, file=test2_file,
+#                               transform=(satmap_transform, grdimage_transform),
+#                               shift_range_lat=shift_range_lat,
+#                               shift_range_lon=shift_range_lon,
+#                               rotation_range=rotation_range)
 
-    test2_loader = DataLoader(test2_set, batch_size=batch_size, shuffle=False, pin_memory=True,
-                              num_workers=num_thread_workers, drop_last=False)
-    return test2_loader
+#     test2_loader = DataLoader(test2_set, batch_size=batch_size, shuffle=False, pin_memory=True,
+#                               num_workers=num_thread_workers, drop_last=False)
+#     return test2_loader
 
 
 

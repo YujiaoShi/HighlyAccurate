@@ -42,7 +42,7 @@ train_logs = ['2017-08-04/Log1']
 #                        ]
 
 train_logs_img_inds = [
-    list(range(4500, 4510))]
+    list(range(4500, 8500))]
 
 # test_logs = [
 #              '2017-08-04/V2/Log1',

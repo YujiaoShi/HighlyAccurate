@@ -355,7 +355,8 @@ class LM_S2GP_Ford(nn.Module):
                                                uv,
                                                jac)
             # [B, C, H, W], [3, B, C, H, W]
-        except:
+        except Exception as e:
+            print("exception happened: ", e)
             print('shift u: ', shift_u)
             print('shift v: ', shift_v)
             print('heading: ', theta)

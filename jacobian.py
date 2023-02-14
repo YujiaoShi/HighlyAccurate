@@ -137,6 +137,7 @@ def interpolate_jac(image, new_shape, jac):
 
 def grid_sample(image, optical, jac=None):
     # values in optical within range of [0, H], and [0, W]
+
     N, C, IH, IW = image.shape
     _, H, W, _ = optical.shape
 
