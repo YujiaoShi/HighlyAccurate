@@ -1,0 +1,17 @@
+# @package _global_
+defaults:
+  - override /model: gkt
+  - override /data: nuscenes_vehicle
+  - override /visualization: nuscenes_viz
+  - override /loss: center_loss
+  - override /metrics: visibility_metrics
+
+experiment:
+  save_dir: "/home/goroyeh/GKT/segmentation/outputs"
+  uuid:  "uuid_test"
+  ckptt: "model_test.ckpt"
+
+model:
+  outputs:
+    bev: [0, 1]
+    center: [1, 2]
