@@ -38,7 +38,7 @@ class LM_G2SP(nn.Module):
         '''
         loss_method: 0: direct R T loss 1: feat loss 2: noise aware feat loss
         '''
-        self.args = args
+        self.args = args.highlyaccurate
         
         self.level = args.level
         self.N_iters = args.N_iters
@@ -613,14 +613,19 @@ CONFIG_PATH = Path.cwd() / 'transformer/config'
 CONFIG_NAME = 'config.yaml'
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME)
-def setup_network(cfg: DictConfig):
+# def setup_network(cfg: DictConfig):
+#     print(f'Setup Backbone Network: {cfg.model}')
+#     return instantiate(cfg.model)
+def setup_network(cfg):
     print(f'Setup Backbone Network: {cfg.model}')
     return instantiate(cfg.model)
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME)
-def setup_model_module(cfg: DictConfig) -> ModelModule:
+# TODO: add cfg these default settings to a yaml file
+# Or: add these config (from main to a config file)
+def setup_model_module(cfg) -> ModelModule:
     backbone = setup_network(cfg)
-    print(f'Setup loss_func: {cfg.lossl}')
+    print(f'Setup loss_func: {cfg.loss}')
     loss_func = MultipleLoss(instantiate(cfg.loss))
     print(f'Setup Metrics: {cfg.metrics}')
     metrics = MetricCollection({k: v for k, v in instantiate(cfg.metrics).items()})
@@ -628,7 +633,6 @@ def setup_model_module(cfg: DictConfig) -> ModelModule:
     model_module = ModelModule(backbone, loss_func, metrics,
                                cfg.optimizer, cfg.scheduler,
                                cfg=cfg)
-
     return model_module
 
 
@@ -640,23 +644,23 @@ class LM_S2GP(nn.Module):
         '''
         self.args = args
 
-        self.level = args.level
-        self.N_iters = args.N_iters
-        self.using_weight = args.using_weight
-        self.loss_method = args.loss_method
+        self.level = args.highlyaccurate.level
+        self.N_iters = args.highlyaccurate.N_iters
+        self.using_weight = args.highlyaccurate.using_weight
+        self.loss_method = args.highlyaccurate.loss_method
 
         self.SatFeatureNet = VGGUnet(self.level)
         self.GrdFeatureNet = VGGUnet(self.level)
 
         print("Debug msg")
-        if args.use_transformer == True:
+        if args.highlyaccurate.use_transformer == True:
             # TODO: Pass a config file in the function!
             print("[models_kitti_360.py] Use Transformer as Feature Extractor!")
-            self.SatFeatureNet = setup_model_module()
-            self.GrdFeatureNet = setup_model_module()
+            self.SatFeatureNet = setup_model_module(args)
+            self.GrdFeatureNet = setup_model_module(args)
 
 
-        if args.rotation_range > 0:
+        if args.highlyaccurate.rotation_range > 0:
             self.damping = nn.Parameter(
                 torch.zeros(size=(1, 3), dtype=torch.float32, requires_grad=True))
         else:
@@ -667,7 +671,7 @@ class LM_S2GP(nn.Module):
         xyz_grds = []
         for level in range(4):
             grd_H, grd_W = ori_grdH/(2**(3-level)), ori_grdW/(2**(3-level))
-            if self.args.proj == 'geo':
+            if self.args.highlyaccurate.proj == 'geo':
                 xyz_grd, mask, xyz_w = self.grd_img2cam(grd_H, grd_W, ori_grdH,
                                                  ori_grdW)  # [1, grd_H, grd_W, 3] under the grd camera coordinates
                 xyz_grds.append((xyz_grd, mask, xyz_w))
@@ -689,7 +693,7 @@ class LM_S2GP(nn.Module):
             polar_grids.append(grids)
         self.polar_grids = polar_grids
 
-        if self.args.Optimizer=='NN':
+        if self.args.highlyaccurate.Optimizer=='NN':
             self.NNrefine = NNrefine()
 
         torch.autograd.set_detect_anomaly(True)

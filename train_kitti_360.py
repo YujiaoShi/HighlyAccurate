@@ -317,7 +317,7 @@ def test2(net_test, args, save_path, best_rank_result, epoch):
 
 
 ###### learning criterion assignment #######
-def train(net, lr, args, save_path):
+def train(net, lr, args, mini_batch, device, save_path):
     bestRankResult = 0.0  # current best, Siam-FCANET18
     # loop over the dataset multiple times
     print(args.resume)
@@ -537,8 +537,12 @@ def getSavePath(args):
     return save_path
 
 
-if __name__ == '__main__':
-
+from pathlib import Path
+CONFIG_PATH = Path.cwd() / 'transformer/config'
+CONFIG_NAME = 'config.yaml'
+import hydra
+@hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME)
+def main(cfg):
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
     else:
@@ -546,39 +550,85 @@ if __name__ == '__main__':
 
     np.random.seed(2022)
 
-    args = parse_args()
-    print(f'args.use_transformer: {args.use_transformer}')
+    # args = parse_args()
+    # print(f'args.use_transformer: {args.use_transformer}')
 
-    mini_batch = args.batch_size
+    mini_batch = cfg.highlyaccurate.batch_size
 
-    save_path = getSavePath(args)
+    save_path = getSavePath(cfg.highlyaccurate)
 
-    net = eval('LM_' + args.direction)(args)
+    net = eval('LM_' + cfg.highlyaccurate.direction)(cfg)
 
     ### cudaargs.epochs, args.debug)
     net.to(device)
     ###########################
 
-    if args.localize:
+    if cfg.highlyaccurate.localize:
         pass
     else:
-        if args.test:
+        if cfg.highlyaccurate.test:
             net.load_state_dict(torch.load(os.path.join(save_path, 'Model_best.pth')))
             # net.load_state_dict(torch.load(os.path.join(save_path, 'model_1.pth')))
-            test1(net, args, save_path, 0., epoch=0)
-            # test2(net, args, save_path, 0., epoch=0)
+            test1(net, cfg, save_path, 0., epoch=0)
+            # test2(net, cfg, save_path, 0., epoch=0)
         
         else:
 
-            if args.resume:
-                net.load_state_dict(torch.load(os.path.join(save_path, 'model_' + str(args.resume - 1) + '.pth')))
-                print("resume from " + 'model_' + str(args.resume - 1) + '.pth')
+            if cfg.highlyaccurate.resume:
+                net.load_state_dict(torch.load(os.path.join(save_path, 'model_' + str(cfg.highlyaccurate.resume - 1) + '.pth')))
+                print("resume from " + 'model_' + str(cfg.highlyaccurate.resume - 1) + '.pth')
 
-            if args.visualize:
+            if cfg.highlyaccurate.visualize:
                 net.load_state_dict(torch.load(os.path.join(save_path, 'Model_best.pth')))
                 # net.load_state_dict(torch.load(os.path.join(save_path, 'model_1.pth')))
 
-            lr = args.lr
+            lr = cfg.highlyaccurate.lr
 
-            train(net, lr, args, save_path)
+            train(net, lr, cfg.highlyaccurate, mini_batch, device, save_path)
+
+
+if __name__ == '__main__':
+    main()
+    # if torch.cuda.is_available():
+    #     device = torch.device("cuda:0")
+    # else:
+    #     device = torch.device("cpu")
+
+    # np.random.seed(2022)
+
+    # args = parse_args()
+    # # print(f'args.use_transformer: {args.use_transformer}')
+
+    # mini_batch = args.batch_size
+
+    # save_path = getSavePath(args)
+
+    # net = eval('LM_' + args.direction)(args)
+
+    # ### cudaargs.epochs, args.debug)
+    # net.to(device)
+    # ###########################
+
+    # if args.localize:
+    #     pass
+    # else:
+    #     if args.test:
+    #         net.load_state_dict(torch.load(os.path.join(save_path, 'Model_best.pth')))
+    #         # net.load_state_dict(torch.load(os.path.join(save_path, 'model_1.pth')))
+    #         test1(net, args, save_path, 0., epoch=0)
+    #         # test2(net, args, save_path, 0., epoch=0)
+        
+    #     else:
+
+    #         if args.resume:
+    #             net.load_state_dict(torch.load(os.path.join(save_path, 'model_' + str(args.resume - 1) + '.pth')))
+    #             print("resume from " + 'model_' + str(args.resume - 1) + '.pth')
+
+    #         if args.visualize:
+    #             net.load_state_dict(torch.load(os.path.join(save_path, 'Model_best.pth')))
+    #             # net.load_state_dict(torch.load(os.path.join(save_path, 'model_1.pth')))
+
+    #         lr = args.lr
+
+    #         train(net, lr, args, save_path)
 

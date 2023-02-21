@@ -33,8 +33,8 @@ num_thread_workers = 2
 
 # train_file = './dataLoader/train_kitti_360.txt'
 # test_file = './dataLoader/test_kitti_360.txt'
-train_file = './dataLoader/kitti_360_train.txt'
-test_file = './dataLoader/kitti_360_test.txt'
+train_file = '../../../dataLoader/kitti_360_train.txt'
+test_file = '../../../dataLoader/kitti_360_test.txt'
 
 
 
@@ -314,6 +314,12 @@ def load_train_data(batch_size, shift_range_lat=20, shift_range_lon=20, rotation
         transforms.Resize(size=[Grd_h, Grd_w]),
         transforms.ToTensor(),
     ])
+
+    # cwd = os.getcwd()
+
+    # # Print the current working directory
+    # print("Current working directory: {0}".format(cwd))  
+    # /home/goroyeh/Yujiao/leekt/HighlyAccurate/outputs/2023-02-21/16-09-48
 
     train_set = SatGrdDataset(root=root_dir, file=train_file,
                               transform=(satmap_transform, grdimage_transform),

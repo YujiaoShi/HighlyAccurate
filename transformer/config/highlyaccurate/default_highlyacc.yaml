@@ -1,0 +1,51 @@
+resume: 0 
+test: 0 
+localize: 0 
+debug: 0 
+epochs: 5 
+lr: 0.0001
+stereo: 0 
+sequence: 1 
+
+batch_size: 1
+direction: "S2GP"
+rotation_range: 10.
+shift_range_lat: 20.
+shift_range_lon: 20.
+level: 3
+N_iters: 5
+Load: 0
+
+coe_shift_lat: 100.
+coe_shift_lon: 100.
+coe_heading: 100. 
+coe_L1: 100.
+coe_L2: 100.
+coe_L3: 100.
+coe_L4: 100.
+metric_distance: 5.
+loss_method: 0
+using_weight: 0
+damping: 0.1
+train_damping: 0
+
+    # parameters below are used for the first-step metric learning traning
+negative_samples: 32
+use_conf_metric: 0
+
+Optimizer: "LM"
+
+level_first: 0
+proj: "geo"
+use_gt_depth: 0
+
+dropout: 0
+use_hessian: 0
+visualize: 0
+beta1: 0.9
+beta2: 0.999
+
+
+
+use_default_model: 0
+use_transformer: True
