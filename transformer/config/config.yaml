@@ -1,12 +1,14 @@
 defaults:
   - _self_
-
-  - model: null
-  - data: ???
+  - model: gkt # TODO: Add cvt.CrossViewTransformer
+  - data: kitti_360
   - visualization: null
 
   - loss: default_loss        # Default: use ... /config/loss/default_loss.yaml
   - metrics: default_metrics  # Default: use ... /config/metrics/default_metrics.yaml
+
+  - highlyaccurate: default_highlyacc
+
 
 experiment:
   project: cross_view_transformers_test               # wandb project
