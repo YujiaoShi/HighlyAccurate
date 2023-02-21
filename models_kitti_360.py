@@ -19,6 +19,19 @@ from RNNs import NNrefine
 EPS = utils.EPS
 
 
+# Import transformer modules
+from transformer import *
+from transformer.model.model_module import ModelModule
+import hydra
+from hydra.utils import instantiate
+from omegaconf import OmegaConf, DictConfig
+from torchmetrics import MetricCollection
+from pathlib import Path
+from transformer.losses import MultipleLoss
+from collections.abc import Callable
+from typing import Tuple, Dict, Optional
+# -----------------------------------
+
 class LM_G2SP(nn.Module):
     def __init__(self, args):  # device='cuda:0',
         super(LM_G2SP, self).__init__()
@@ -595,6 +608,30 @@ class LM_G2SP(nn.Module):
         return torch.sum(torch.stack(losses, dim=0))
 
 
+
+CONFIG_PATH = Path.cwd() / 'transformer/config'
+CONFIG_NAME = 'config.yaml'
+
+@hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME)
+def setup_network(cfg: DictConfig):
+    print(f'Setup Backbone Network: {cfg.model}')
+    return instantiate(cfg.model)
+
+@hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME)
+def setup_model_module(cfg: DictConfig) -> ModelModule:
+    backbone = setup_network(cfg)
+    print(f'Setup loss_func: {cfg.lossl}')
+    loss_func = MultipleLoss(instantiate(cfg.loss))
+    print(f'Setup Metrics: {cfg.metrics}')
+    metrics = MetricCollection({k: v for k, v in instantiate(cfg.metrics).items()})
+
+    model_module = ModelModule(backbone, loss_func, metrics,
+                               cfg.optimizer, cfg.scheduler,
+                               cfg=cfg)
+
+    return model_module
+
+
 class LM_S2GP(nn.Module):
     def __init__(self, args):  # device='cuda:0',
         super(LM_S2GP, self).__init__()
@@ -610,6 +647,11 @@ class LM_S2GP(nn.Module):
 
         self.SatFeatureNet = VGGUnet(self.level)
         self.GrdFeatureNet = VGGUnet(self.level)
+
+        if args.use_transformer:
+            # TODO: Pass a config file in the function!
+            self.SatFeatureNet = setup_model_module()
+            self.GrdFeatureNet = setup_model_module()
 
 
         if args.rotation_range > 0:
