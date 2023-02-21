@@ -12,7 +12,7 @@ docker run -it --net=host --shm-size 8G --gpus all  \
   -v "/tmp/.X11-unix:/tmp/.X11-unix:rw" \
   -v "/etc/passwd:/etc/passwd:rw" \
   -e "TERM=xterm-256color" \
-  -v "/mnt/workspace/users/leekt:/home/$USER/" \
+  -v "/home/goroyeh:/home/$USER" \
   -v "/mnt/workspace:/mnt/workspace" \
   --device=/dev/dri:/dev/dri \
   --name=${container_name} \

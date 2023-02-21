@@ -648,8 +648,10 @@ class LM_S2GP(nn.Module):
         self.SatFeatureNet = VGGUnet(self.level)
         self.GrdFeatureNet = VGGUnet(self.level)
 
-        if args.use_transformer:
+        print("Debug msg")
+        if args.use_transformer == True:
             # TODO: Pass a config file in the function!
+            print("[models_kitti_360.py] Use Transformer as Feature Extractor!")
             self.SatFeatureNet = setup_model_module()
             self.GrdFeatureNet = setup_model_module()
 
