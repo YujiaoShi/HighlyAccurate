@@ -1,12 +1,14 @@
 from . import nuscenes_dataset
 from . import nuscenes_dataset_generated
 from . import nuscenes_dataset_generated_setting1
+from . import kitti_360_dataset
 
 
 MODULES = {
     'nuscenes': nuscenes_dataset,
     'nuscenes_generated': nuscenes_dataset_generated,
-    'nuscenes_generated_setting1': nuscenes_dataset_generated_setting1
+    'nuscenes_generated_setting1': nuscenes_dataset_generated_setting1,
+    'kitti-360': kitti_360_dataset
 }
 
 
