@@ -7,6 +7,11 @@
 5. Execute the container: `docker exec -it -u root satellite_slam bash` 
 6. You should be albe to develop inside the container
 
+### Run KITTI-360 dataset:
+Train: `python train_kitti_360.py --batch_size 1 --train_damping 0 --using_weight 0`  
+Test: `python train_kitti_360.py --batch_size 1 --train_damping 0 --using_weight 0 --test 1`  
+Test with Yujiao's best model: `python train_kitti_360.py --batch_size 1 --train_damping 0   --using_weight 0 --test 1 --use_default_model 1`
+
 # Beyond Cross-view Image Retrieval: Highly Accurate Vehicle Localization Using Satellite Image, CVPR 2022
 
 ![Framework](./Framework.png)

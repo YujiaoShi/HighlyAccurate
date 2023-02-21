@@ -22,7 +22,7 @@ import ssl
 
 ssl._create_default_https_context = ssl._create_unverified_context  # for downloading pretrained VGG weights
 
-from models_kitti import LM_G2SP, loss_func, LM_S2GP
+from models_kitti_360 import LM_G2SP, loss_func, LM_S2GP
 
 import numpy as np
 import os
@@ -351,6 +351,10 @@ def train(net, lr, args, save_path):
             # zero the parameter gradients
             optimizer.zero_grad()
 
+            # leekt
+            # print("net = ", net)
+            # print("args.direction = ", args.direction)
+
             if args.direction == 'S2GP':
                 loss, loss_decrease, shift_lat_decrease, shift_lon_decrease, thetas_decrease, loss_last, \
                 shift_lat_last, shift_lon_last, theta_last, \
@@ -428,6 +432,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--resume', type=int, default=0, help='resume the trained model')
     parser.add_argument('--test', type=int, default=0, help='test with trained model')
+    parser.add_argument('--localize', type=int, default=0, help='localize with trained model')
     parser.add_argument('--debug', type=int, default=0, help='debug to dump middle processing images')
 
     parser.add_argument('--epochs', type=int, default=5, help='number of training epochs')
@@ -481,13 +486,20 @@ def parse_args():
     parser.add_argument('--beta1', type=float, default=0.9, help='coefficients for adam optimizer')
     parser.add_argument('--beta2', type=float, default=0.999, help='coefficients for adam optimizer')
 
+    parser.add_argument('--use_default_model', type=int, default=0, help='0 or 1')
+
     args = parser.parse_args()
 
     return args
 
 
 def getSavePath(args):
-    save_path = './ModelsKitti/LM_' + str(args.direction) \
+    if args.test and args.use_default_model:
+        save_path = '/mnt/workspace/datasets/yujiao_data/Models/ModelsKitti/LM_S2GP/lat20.0m_lon20.0m_rot10.0_Lev3_Nit5_Wei0_Dam0_Load0_LM_loss0_100.0_100.0_100.0_100.0_100.0_100.0_100.0'
+    elif not args.test and args.use_default_model:
+        raise Exception("Can not use default model in non-testing mode")
+    else:
+        save_path = './ModelsKitti/LM_' + str(args.direction) \
                 + '/lat' + str(args.shift_range_lat) + 'm_lon' + str(args.shift_range_lon) + 'm_rot' + str(
         args.rotation_range) \
                 + '_Lev' + str(args.level) + '_Nit' + str(args.N_iters) \
@@ -543,21 +555,26 @@ if __name__ == '__main__':
     net.to(device)
     ###########################
 
-    if args.test:
-        net.load_state_dict(torch.load(os.path.join(save_path, 'model_1.pth')))
-        test1(net, args, save_path, 0., epoch=0)
-        # test2(net, args, save_path, 0., epoch=0)
-
+    if args.localize:
+        pass
     else:
+        if args.test:
+            net.load_state_dict(torch.load(os.path.join(save_path, 'Model_best.pth')))
+            # net.load_state_dict(torch.load(os.path.join(save_path, 'model_1.pth')))
+            test1(net, args, save_path, 0., epoch=0)
+            # test2(net, args, save_path, 0., epoch=0)
+        
+        else:
 
-        if args.resume:
-            net.load_state_dict(torch.load(os.path.join(save_path, 'model_' + str(args.resume - 1) + '.pth')))
-            print("resume from " + 'model_' + str(args.resume - 1) + '.pth')
+            if args.resume:
+                net.load_state_dict(torch.load(os.path.join(save_path, 'model_' + str(args.resume - 1) + '.pth')))
+                print("resume from " + 'model_' + str(args.resume - 1) + '.pth')
 
-        if args.visualize:
-            net.load_state_dict(torch.load(os.path.join(save_path, 'model_1.pth')))
+            if args.visualize:
+                net.load_state_dict(torch.load(os.path.join(save_path, 'Model_best.pth')))
+                # net.load_state_dict(torch.load(os.path.join(save_path, 'model_1.pth')))
 
-        lr = args.lr
+            lr = args.lr
 
-        train(net, lr, args, save_path)
+            train(net, lr, args, save_path)
 
