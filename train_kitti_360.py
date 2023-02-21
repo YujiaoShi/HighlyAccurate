@@ -511,6 +511,9 @@ def parse_args():
 
     parser.add_argument('--use_default_model', type=int, default=0, help='0 or 1')
 
+    # Add argument for transformer
+    parser.add_argument('--use_transformer', type=bool, default=False, help='whether to use transformer as feature extractor')
+
     args = parser.parse_args()
 
     return args
@@ -567,6 +570,7 @@ if __name__ == '__main__':
     np.random.seed(2022)
 
     args = parse_args()
+    print(f'args.use_transformer: {args.use_transformer}')
 
     mini_batch = args.batch_size
 
