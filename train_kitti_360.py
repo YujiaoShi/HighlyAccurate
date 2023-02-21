@@ -355,6 +355,10 @@ def train(net, lr, args, mini_batch, device, save_path):
             # print("net = ", net)
             # print("args.direction = ", args.direction)
 
+            # goroyeh
+            # Get camera intrinsic
+            # Get camera extrinsic 
+
             if args.direction == 'S2GP':
                 loss, loss_decrease, shift_lat_decrease, shift_lon_decrease, thetas_decrease, loss_last, \
                 shift_lat_last, shift_lon_last, theta_last, \

@@ -568,7 +568,23 @@ class GeometryKernelEncoder(nn.Module):
         self.layers = nn.ModuleList(layers)
 
     def forward(self, batch):
-        b, n, _, _, _ = batch['image'].shape
+
+        """
+        Input batch: dict
+        {image: [B,C,A,A],
+         intrinsics: B, N, 3, 3
+         extrinsicx: B, N, 4, 4}
+
+        Input image 'batch':
+        :param left_camera_k: [B, 3, 3]
+        :param grd_img_left: [B, C, H, W]       
+        """
+        B,C,H,W = batch.shape
+        print(f'Shape of input ground-img: {B},{C},{H},{W}') # 1, 3, 512, 512
+        print("Representin B, C, H, W")
+        print(f'batch: {batch}') # a tensor of shape (1,3,512,512)
+
+        # b, n, _, _, _ = batch['image'].shape
 
         # b n c h w
         image = batch['image'].flatten(0, 1)

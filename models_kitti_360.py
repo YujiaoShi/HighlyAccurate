@@ -654,9 +654,8 @@ class LM_S2GP(nn.Module):
 
         print("Debug msg")
         if args.highlyaccurate.use_transformer == True:
-            # TODO: Pass a config file in the function!
-            print("[models_kitti_360.py] Use Transformer as Feature Extractor!")
-            self.SatFeatureNet = setup_model_module(args)
+            print("For Ground-View images, Use Transformer as Feature Extractor!")
+            # self.SatFeatureNet = setup_model_module(args)
             self.GrdFeatureNet = setup_model_module(args)
 
 
@@ -1206,9 +1205,20 @@ class LM_S2GP(nn.Module):
         # sat = transforms.ToPILImage()(sat_map[0])
         # sat.save('sat.png')
 
+        """
+        Input for GrdFeatureNet: dict
+        {image: tensor of shape [B,C,A,A],
+         intrinsics: tensor of shape B, N, 3, 3
+         extrinsicx: tensor of shape B, N, 4, 4}        
+        """
+
         sat_feat_list, sat_conf_list = self.SatFeatureNet(sat_map)
 
-        grd_feat_list, grd_conf_list = self.GrdFeatureNet(grd_img_left)
+        grdnet_input = {'image': grd_img_left, 'intrinsics': grd_img_left, 'extrinsics':None}
+        grd_feat_list, grd_conf_list = self.GrdFeatureNet(grdnet_input)
+
+        # sat_feat_list, sat_conf_list = self.SatFeatureNet(sat_map)
+        # grd_feat_list, grd_conf_list = self.GrdFeatureNet(grd_img_left)
 
         shift_u = torch.zeros([B, 1], dtype=torch.float32, requires_grad=True, device=sat_map.device)
         shift_v = torch.zeros([B, 1], dtype=torch.float32, requires_grad=True, device=sat_map.device)
