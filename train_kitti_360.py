@@ -13,7 +13,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms
 # from dataLoader.KITTI_dataset import load_train_data, load_test1_data, load_test2_data
-from dataLoader.KITTI_360_dataset import load_train_data, load_test_data
+from dataLoader.KITTI_360_dataset import load_train_data, load_test_data, load_localize_data
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn.functional as F
 import scipy.io as scio
@@ -32,6 +32,29 @@ from utils import gps2distance
 import time
 
 ########################### ranking test ############################
+def localize(net_localize, args, save_path, best_rank_result, epoch):
+    print("Runing localization pipeline")
+    LOCALIZE_FILE = ""
+    net_localize.eval()
+    dataloader = load_localize_data(mini_batch, args.shift_range_lat, args.shift_range_lon, args.rotation_range)
+    
+    start_time = time.time()
+    for i, data in enumerate(dataloader):
+        # If batch_size is not set to one, will return a list of tensor where the first dimension of the tensors are the batch_size
+        # print("len(data) = ", len(data)) # 7
+        # print("data[0].shape = ", data[0].shape) # satmap: torch.Size([B, 3, 512, 512])
+        # print("data[1].shape = ", data[1].shape) # left_camera_k: torch.Size([B, 3, 3])
+        # print("data[2].shape = ", data[2].shape) # groudn_left_img: torch.Size([B, 3, 256, 1024])
+        sat_map, left_camera_k, grd_left_imgs = [item.to(device) for item in data]
+        print("left_cam_k = ", left_camera_k)
+        
+        if args.direction == 'S2GP':
+            shifts_lat, shifts_lon, theta = net_localize(sat_map, grd_left_imgs, mode='test')
+            # print("shifts_lat = ", shifts_lat, ", shifts_lon = ", shifts_lon, "theta = ", theta)
+        elif args.direction == 'G2SP':
+            shifts_lat, shifts_lon, theta = net_localize(sat_map, grd_left_imgs, left_camera_k, mode='test')
+
+
 def test1(net_test, args, save_path, best_rank_result, epoch):
     ### net evaluation state
     net_test.eval()
@@ -556,7 +579,8 @@ if __name__ == '__main__':
     ###########################
 
     if args.localize:
-        pass
+        net.load_state_dict(torch.load(os.path.join(save_path, 'Model_best.pth')))
+        localize(net, args, save_path, 0., epoch=0)
     else:
         if args.test:
             net.load_state_dict(torch.load(os.path.join(save_path, 'Model_best.pth')))

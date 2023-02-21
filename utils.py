@@ -11,6 +11,7 @@ SatMap_original_sidelength = 512 # 0.2 m per pixel
 SatMap_process_sidelength = 512 # 0.2 m per pixel
 Default_lat = 49.015
 
+# These are the transform between left camera and GPS
 CameraGPS_shift_left = [1.08, 0.26]
 CameraGPS_shift_right = [1.08, 0.8]  # 0.26 + 0.54
 
