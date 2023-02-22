@@ -584,6 +584,7 @@ class GeometryKernelEncoder(nn.Module):
         # print(f'Shape of input ground-img: {B},{C},{H},{W}') # 1, 3, 512, 512
         # print("Representin B, C, H, W")
 
+        b, n, _, _ = batch['image'].shape
         # b n c h w
         image = batch['image'].flatten(0, 1)
 
@@ -592,7 +593,7 @@ class GeometryKernelEncoder(nn.Module):
         print(f'extrinsics shape: {batch["extrinsics"].shape}' )
         """
         Grd Img shape: torch.Size([1, 3, 256, 1024])
-        intrinsics shape: torch.Size([1, 3, 256, 1024])
+        intrinsics shape: torch.Size([1, 3, 3])
         extrinsics shape: torch.Size([1, 4, 4, 4])
         """
         # b n 3 3
@@ -607,6 +608,8 @@ class GeometryKernelEncoder(nn.Module):
         # b d H W
         x = repeat(x, '... -> b ...', b=b)
 
+
+        # 02/21 TODO: Error here!
         for cross_view, feature, layer in zip(self.cross_views, features, self.layers):
             feature = rearrange(feature, '(b n) ... -> b n ...', b=b, n=n)
             x = cross_view(x, self.bev_embedding, feature, I_inv,
