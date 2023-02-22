@@ -79,8 +79,50 @@ class SatGrdDataset(Dataset):
         # day_dir = file_name[:10]
         # drive_dir = file_name[:38]
         # image_no = file_name[38:]
-        drive_dir = file_name[:26]
-        image_no = file_name[46:]
+        drive_dir = file_name[:26]   # 2013_05_28_drive_0000_sync/
+        image_no = file_name[46:]    # 0000000000.png
+
+        # goroyeh
+        # extrinsics = cam2imu @ imu2world (pose.txt)
+        # =================== read camera to imu transform for two front cams and left/right fishcams
+        cam2pose_file_name = os.path.join(self.root, calibration_dir, 'calib_cam_to_pose.txt') # From cam to GPS/IMU
+        cam2imus = []
+        with open(cam2pose_file_name, 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                items = line.split(':')
+                # print(f'read line: {line}')
+                values = items[1].strip().split(' ')
+                values = [float(val) for val in values]
+                
+                cam2imu = torch.tensor([
+                            [values[0],values[1],values[2], values[3]],
+                            [values[4],values[5],values[6], values[7]],
+                            [values[8],values[9],values[10], values[11]],
+                            [        0,       0,         0,         1]])
+                cam2imus.append(cam2imu)
+
+        imu2world_file_name = os.path.join(self.root, pose_dir, drive_dir, 'poses.txt')
+        # Get pose.txt raw[idx]
+        with open(imu2world_file_name, 'r') as f:
+            lines = f.readlines()
+            target_row = lines[idx]
+            values = target_row.strip().split(' ')
+            values = [float(val) for val in values]
+            # print(f'target_row {target_row}')
+  
+            imu2world_matrix = torch.tensor([
+                [values[1], values[2], values[3], values[4]],
+                [values[5], values[6], values[7], values[8]],
+                [values[9], values[10], values[11], values[12]],
+                [       0,         0,         0,            1]
+            ])
+
+        extrinsics = torch.zeros([4,4,4]) # Goal: (4, 4, 4) 4 cameras, (4x4)
+        for i, cam2imu in  enumerate(cam2imus):
+            extrinsic = cam2imu @ imu2world_matrix
+            extrinsics[i,:,:] = extrinsic
+            # print(f'extrinsics: {extrinsic}')
 
         # =================== read camera intrinsice for left and right cameras ====================
         calib_file_name = os.path.join(self.root, calibration_dir, 'perspective.txt')
@@ -160,12 +202,13 @@ class SatGrdDataset(Dataset):
         if self.satmap_transform is not None:
             sat_map = self.satmap_transform(sat_map)
 
+        # grd_left_imgs[0] : shape (3, 256, 1024) (C, H, W)
         return sat_map, left_camera_k, grd_left_imgs[0], \
                torch.tensor(-gt_shift_x, dtype=torch.float32).reshape(1), \
                torch.tensor(-gt_shift_y, dtype=torch.float32).reshape(1), \
                torch.tensor(theta, dtype=torch.float32).reshape(1), \
+               extrinsics, \
                file_name
-
 
 
 

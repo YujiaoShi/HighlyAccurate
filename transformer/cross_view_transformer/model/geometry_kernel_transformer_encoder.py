@@ -579,15 +579,22 @@ class GeometryKernelEncoder(nn.Module):
         :param left_camera_k: [B, 3, 3]
         :param grd_img_left: [B, C, H, W]       
         """
-        B,C,H,W = batch.shape
-        print(f'Shape of input ground-img: {B},{C},{H},{W}') # 1, 3, 512, 512
-        print("Representin B, C, H, W")
-        print(f'batch: {batch}') # a tensor of shape (1,3,512,512)
-
         # b, n, _, _, _ = batch['image'].shape
+        # B, C, H, W = batch['image'].shape # (1, 3, 256, 1024)
+        # print(f'Shape of input ground-img: {B},{C},{H},{W}') # 1, 3, 512, 512
+        # print("Representin B, C, H, W")
 
         # b n c h w
         image = batch['image'].flatten(0, 1)
+
+        print(f'Grd Img shape: {batch["image"].shape}' )
+        print(f'intrinsics shape: {batch["intrinsics"].shape}' )
+        print(f'extrinsics shape: {batch["extrinsics"].shape}' )
+        """
+        Grd Img shape: torch.Size([1, 3, 256, 1024])
+        intrinsics shape: torch.Size([1, 3, 256, 1024])
+        extrinsics shape: torch.Size([1, 4, 4, 4])
+        """
         # b n 3 3
         I_inv = batch['intrinsics'].inverse()
         # b n 4 4
