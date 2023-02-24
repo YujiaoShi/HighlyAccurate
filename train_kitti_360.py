@@ -55,7 +55,7 @@ def localize(net_localize, args, mini_batch, device, save_path, best_rank_result
             shifts_lat, shifts_lon, theta = net_localize(sat_map, grd_left_imgs, left_camera_k, mode='test')
 
 
-def test1(net_test, args, save_path, best_rank_result, epoch):
+def test1(mini_batch, net_test, args, save_path, best_rank_result, epoch):
     ### net evaluation state
     net_test.eval()
 
@@ -196,7 +196,7 @@ def test1(net_test, args, save_path, best_rank_result, epoch):
     return result
 
 
-def test2(net_test, args, save_path, best_rank_result, epoch):
+def test2(mini_batch, net_test, args, save_path, best_rank_result, epoch):
     ### net evaluation state
     net_test.eval()
 
@@ -446,7 +446,7 @@ def train(net, lr, args, mini_batch, device, save_path):
         torch.save(net.state_dict(), os.path.join(save_path, 'model_' + str(compNum) + '.pth'))
 
         ### ranking test
-        current = test1(net, args, save_path, bestRankResult, epoch)
+        current = test1(mini_batch, net, args, save_path, bestRankResult, epoch)
         if (current > bestRankResult):
             bestRankResult = current
 
