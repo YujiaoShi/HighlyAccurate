@@ -642,7 +642,7 @@ class LM_S2GP(nn.Module):
         '''
         loss_method: 0: direct R T loss 1: feat loss 2: noise aware feat loss
         '''
-        self.args = args
+        self.args = args.highlyaccurate
 
         self.level = args.highlyaccurate.level
         self.N_iters = args.highlyaccurate.N_iters
@@ -670,7 +670,7 @@ class LM_S2GP(nn.Module):
         xyz_grds = []
         for level in range(4):
             grd_H, grd_W = ori_grdH/(2**(3-level)), ori_grdW/(2**(3-level))
-            if self.args.highlyaccurate.proj == 'geo':
+            if self.args.proj == 'geo':
                 xyz_grd, mask, xyz_w = self.grd_img2cam(grd_H, grd_W, ori_grdH,
                                                  ori_grdW)  # [1, grd_H, grd_W, 3] under the grd camera coordinates
                 xyz_grds.append((xyz_grd, mask, xyz_w))
@@ -692,7 +692,7 @@ class LM_S2GP(nn.Module):
             polar_grids.append(grids)
         self.polar_grids = polar_grids
 
-        if self.args.highlyaccurate.Optimizer=='NN':
+        if self.args.Optimizer=='NN':
             self.NNrefine = NNrefine()
 
         torch.autograd.set_detect_anomaly(True)
@@ -1241,6 +1241,10 @@ class LM_S2GP(nn.Module):
         grdnet_input = {'image': grd_imgs, 'intrinsics_dict': intrinsics_dict, 'extrinsics':extrinsics}
         # grd_feat_list, grd_conf_list = self.GrdFeatureNet(grdnet_input)
         grd_feat_dict = self.GrdFeatureNet(grdnet_input)
+        grd_feat_list = []
+        for _ in range(len(grd_feat_dict)):
+            grd_feat_list.append(grd_feat_dict['bev'])
+        grd_conf_list = torch.zeros_like(sat_conf_list[0])
 
         '''
             grd_feat_dict: a dictionary of feature given different level
@@ -1280,25 +1284,49 @@ class LM_S2GP(nn.Module):
                 grd_conf = grd_conf_list[level]
 
                 grd_H, grd_W = grd_feat.shape[-2:]
-                sat_feat_proj, sat_conf_proj, dfeat_dpose, sat_uv, mask = self.project_map_to_grd(
-                    sat_feat, sat_conf, shift_u, shift_v, heading, level, gt_depth=gt_depth)
+
+
+
+                '''
+                    TODO: No need to project sat_feat to ground!
+                          Handle these! Or project both (sat and grd) to grd?                
+                    Goro's TODO:
+                    1. Fisheye intrinsics
+                    2. Transformer should produces "multiple level features"
+                    3. Should we project both Sat_features and bev_features (from grd images) to ground-view?
+                    4. If no, have to handle the LM-Optimization part codes
+                '''
+
+                # sat_feat_proj, sat_conf_proj, dfeat_dpose, sat_uv, mask = self.project_map_to_grd(
+                #     sat_feat, sat_conf, shift_u, shift_v, heading, level, gt_depth=gt_depth)
+                sat_feat_proj = sat_feat      
+                sat_uv        = torch.zeros(1, 1, 1, 2)  
                 # [B, C, H, W], [B, 1, H, W], [3, B, C, H, W], [B, H, W, 2]
 
-                grd_feat = grd_feat * mask[:, None, :, :]
-                grd_conf = grd_conf * mask[:, None, :, :]
+                # grd_feat = grd_feat * mask[:, None, :, :]
+                # grd_conf = grd_conf * mask[:, None, :, :]
 
-                if self.args.proj == 'geo':
-                    sat_feat_new = sat_feat_proj[:, :, grd_H // 2:, :]
-                    sat_conf_new = sat_conf_proj[:, :, grd_H // 2:, :]
-                    grd_feat_new = grd_feat[:, :, grd_H // 2:, :]
-                    grd_conf_new = grd_conf[:, :, grd_H // 2:, :]
-                    dfeat_dpose_new = dfeat_dpose[:, :, :, grd_H // 2:, :]
-                else:
-                    sat_feat_new = sat_feat_proj
-                    sat_conf_new = sat_conf_proj
-                    grd_feat_new = grd_feat
-                    grd_conf_new = grd_conf
-                    dfeat_dpose_new = dfeat_dpose
+                # if self.args.proj == 'geo':
+                #     sat_feat_new = sat_feat_proj[:, :, grd_H // 2:, :]
+                #     sat_conf_new = sat_conf_proj[:, :, grd_H // 2:, :]
+                #     grd_feat_new = grd_feat[:, :, grd_H // 2:, :]
+                #     grd_conf_new = grd_conf[:, :, grd_H // 2:, :]
+                #     dfeat_dpose_new = dfeat_dpose[:, :, :, grd_H // 2:, :]
+                # else:
+                #     sat_feat_new = sat_feat_proj
+                #     sat_conf_new = sat_conf_proj
+                #     grd_feat_new = grd_feat
+                #     grd_conf_new = grd_conf
+                #     dfeat_dpose_new = dfeat_dpose
+
+ 
+                sat_feat_new = sat_feat
+                sat_conf_new = sat_conf
+                grd_feat_new = grd_feat
+                grd_conf_new = grd_conf
+                # print(f'sat_feat.shape {sat_feat.shape}')
+                B, C, H, W = sat_feat.shape
+                dfeat_dpose_new = torch.zeros([3, B, C, H, W]) #dfeat_dpose               
 
                 if self.args.Optimizer == 'LM':
                     shift_u_new, shift_v_new, heading_new = self.LM_update(shift_u, shift_v, heading,

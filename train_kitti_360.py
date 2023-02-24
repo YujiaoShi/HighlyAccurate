@@ -403,7 +403,7 @@ def train(net, lr, args, mini_batch, device, save_path):
             loss_vec.append(loss.item())
 
             if Loop % 10 == 9:  #
-                level = args.level - 1
+                level = abs(args.level) - 1
                 # for level in range(len(shifts_decrease)):
                 # print(loss_decrease[level].shape)
                 print('Epoch: ' + str(epoch) + ' Loop: ' + str(Loop) + ' Delta: Level-' + str(level) +
