@@ -449,6 +449,28 @@ class GeometryKernelAttention(nn.Module):
 
         Returns: (b, d, H, W)
         """
+
+        # print(f'Check dimensions: ')
+        # print(f'x:       {x.shape}: ')
+        # print(f'feature:{feature.shape} ')
+        # print(f'I_inv:  {I_inv.shape} ')     
+        # print(f'E_inv:  {E_inv.shape} ')
+        # print(f'I_:     {I_.shape} ')     
+        # print(f'E_:     {E_.shape} ')
+        # print(f'I_inv {I_inv.shape} ')     
+        # 
+        '''
+            Check dimensions: 
+            x:       torch.Size([1, 128, 25, 25]): 
+            feature:torch.Size([1, 4, 32, 64, 256]) 
+            I_inv:  torch.Size([4, 3, 3]) 
+            E_inv:  torch.Size([1, 4, 4, 4]) 
+            I_:     torch.Size([4, 3, 3]) 
+            E_:     torch.Size([1, 4, 4, 4])            
+        '''                
+
+
+
         b, n, _, _, _ = feature.shape
 
         # b n 3 h w
@@ -489,7 +511,8 @@ class GeometryKernelAttention(nn.Module):
         feature_flat = self.conv(feature_flat)
         # project local patches using sampling
         # concat feature and embeddings for sampling
-        d_feature = feature_flat.shape[1]
+        d_feature = feature_flat.shape[1]     
+
         feature_embed = torch.cat([feature_flat, d_flat], dim=1)
         feature_embed, mask = self.sampling(
             bev.grid.detach().clone(), feature_embed, I_, E_)
@@ -523,6 +546,86 @@ class GeometryKernelAttention(nn.Module):
 
         return self.cross_attn(query, key_flat, val_flat, mask=mask, skip=x if self.skip else None)
 
+import numpy as np
+
+def process_fisheye_image(image, fish_cam_dict):
+    ''' camera coordinate to image plane '''
+    '''
+
+    return : an image (tensor of shape (C, H, W)
+    '''
+    # points = points.T
+    # norm = np.linalg.norm(points, axis=1)
+
+    # x = points[:,0] / norm
+    # y = points[:,1] / norm
+    # z = points[:,2] / norm
+
+    # x /= z+fish_cam_dict['mirror_parameters']['xi']
+    # y /= z+fish_cam_dict['mirror_parameters']['xi']
+
+    # k1 = fish_cam_dict['distortion_parameters']['k1']
+    # k2 = fish_cam_dict['distortion_parameters']['k2']
+    # gamma1 = fish_cam_dict['projection_parameters']['gamma1']
+    # gamma2 = fish_cam_dict['projection_parameters']['gamma2']
+    # u0 = fish_cam_dict['projection_parameters']['u0']
+    # v0 = fish_cam_dict['projection_parameters']['v0']
+
+    # ro2 = x*x + y*y
+    # x *= 1 + k1*ro2 + k2*ro2*ro2
+    # y *= 1 + k1*ro2 + k2*ro2*ro2
+
+    # x = gamma1*x + u0
+    # y = gamma2*y + v0
+
+    # return x, y, norm * points[:,2] / np.abs(points[:,2])
+
+    return image
+    
+def preprocess_images(images, intrinsics_dict):
+
+    """
+    Preprocess images[2] and images[3]
+    so that we can multiply them with 3x3 intrinsic form
+
+    return: images (tensor of shape (4,C,H,W))    
+    
+    """
+
+    images_processed = torch.zeros_like(images) 
+    images_processed[0:1, :, :] = images[0:1, :, :]
+    images_processed[2, :, :] = process_fisheye_image(images[2,:,:], intrinsics_dict['fcam2'])
+    images_processed[3, :, :] = process_fisheye_image(images[3,:,:], intrinsics_dict['fcam3'])
+    return images_processed
+
+def get_fisheye_intrinsics(fish_cam_dict):
+
+    g1 =  float(fish_cam_dict['projection_parameters']['gamma1'])
+    g2 =  float(fish_cam_dict['projection_parameters']['gamma2'])
+    fx = g1
+    fy = g2
+    cx =  float(fish_cam_dict['projection_parameters']['u0'])
+    cy =  float(fish_cam_dict['projection_parameters']['v0'])
+    print(f"        fx: {fx}  fy: {fy}  cx: {cx}  cy: {cy}")
+    return torch.tensor([[fx, 0,  cx], [0, fy, cy], [0, 0, 1]])
+ 
+    return intrinsic 
+def setup_intrinsics(intrinsics_dict):
+
+    """
+    Setup fisheye cameras intrincis (in 3x3 form)
+    Take in intrinsics['fcam2'] and intrinsics['fcam3'] as input
+    Input argument: a dictionary
+    return: Intrinsic matrices I (tensor of shape (4, 3, 3)) (4 cameras, 2 perspective 2 fisheye)
+    
+    """
+
+    I = torch.zeros(1, len(intrinsics_dict), 3, 3)
+    I[0, 0,:,:] = intrinsics_dict['pcam0']
+    I[0, 1,:,:] = intrinsics_dict['pcam1']
+    I[0, 2,:,:] = get_fisheye_intrinsics(intrinsics_dict['fcam2'])
+    I[0, 3,:,:] = get_fisheye_intrinsics(intrinsics_dict['fcam3'])
+    return I
 
 class GeometryKernelEncoder(nn.Module):
 
@@ -540,6 +643,8 @@ class GeometryKernelEncoder(nn.Module):
         self.norm = Normalize()
         self.backbone = backbone
 
+
+        # F.interpolate: Down/up samples the input to either the given size or the given scale_factor
         if scale < 1.0:
             self.down = lambda x: F.interpolate(
                 x, scale_factor=scale, recompute_scale_factor=False)
@@ -584,24 +689,49 @@ class GeometryKernelEncoder(nn.Module):
         # print(f'Shape of input ground-img: {B},{C},{H},{W}') # 1, 3, 512, 512
         # print("Representin B, C, H, W")
 
-        b, n, _, _ = batch['image'].shape
+        b, n, _, _, _= batch['image'].shape
         # b n c h w
-        image = batch['image'].flatten(0, 1)
+        images = batch['image'].flatten(0, 1)
 
-        print(f'Grd Img shape: {batch["image"].shape}' )
-        print(f'intrinsics shape: {batch["intrinsics"].shape}' )
-        print(f'extrinsics shape: {batch["extrinsics"].shape}' )
+        print("GKT Encoder: ")
+        print(f'    Grd Img shape: {batch["image"].shape}' )
+        print(f'    Intrinsics_dict len: {len(batch["intrinsics_dict"])}' )
+        print(f'    Extrinsics shape: {batch["extrinsics"].shape}' )
         """
-        Grd Img shape: torch.Size([1, 3, 256, 1024])
-        intrinsics shape: torch.Size([1, 3, 3])
-        extrinsics shape: torch.Size([1, 4, 4, 4])
+        => TODO: Make shape be:
+        Img: b, n, c, h, w => 1, 4, 3, 256, 1024
+        Intrinsics_dict: a dictionary
+        Extrinsics: 1, 4, 4, 4
+        Then, (b,n) = 4 = b, n = 1, 4
+
+        # Process batch['intrinsic'] here:
+        # batch['intrincis']: a dict of 4 items
+        # batch['intrincis']['pcam0']: tensor of shape (3x3)
+        # batch['intrincis']['pcam1']: tensor of shape (3x3)
+        # batch['intrincis']['fcam2']: dictionary
+        # batch['intrincis']['fcam3']: dictionary
         """
+
+        # Preprocess points (images[2] and images[3[])
+
+        images = preprocess_images(images, batch['intrinsics_dict'])
+        I = setup_intrinsics(batch['intrinsics_dict'])
+        # print(f'Intrinsics.shape : {I.shape}' )
         # b n 3 3
-        I_inv = batch['intrinsics'].inverse()
+        I_inv = I.inverse()
+        # I_inv = batch['intrinsics'].inverse()
         # b n 4 4
         E_inv = batch['extrinsics'].inverse()     
 
-        features = [self.down(y) for y in self.backbone(self.norm(image))]
+
+        
+
+        features = [self.down(y) for y in self.backbone(self.norm(images))]
+
+
+        # print(f'len(features): {len(features)}')            # 2
+        # print(f'features[0].shape {features[0].shape}')    features[0].shape torch.Size([4, 32, 64, 256])
+        # print(f'features[1].shape {features[1].shape}')    features[1].shape torch.Size([4, 112, 16, 64])
 
         # d H W
         x = self.bev_embedding.get_prior()
@@ -609,11 +739,18 @@ class GeometryKernelEncoder(nn.Module):
         x = repeat(x, '... -> b ...', b=b)
 
 
-        # 02/21 TODO: Error here!
+        # 02/23 TODO: Error here!
         for cross_view, feature, layer in zip(self.cross_views, features, self.layers):
             feature = rearrange(feature, '(b n) ... -> b n ...', b=b, n=n)
             x = cross_view(x, self.bev_embedding, feature, I_inv,
-                           E_inv, batch['intrinsics'], batch['extrinsics'])
+                           E_inv, I, batch['extrinsics'])
             x = layer(x)
 
-        return x
+        return x        
+        # for cross_view, feature, layer in zip(self.cross_views, features, self.layers):
+        #     feature = rearrange(feature, '(b n) ... -> b n ...', b=b, n=n)
+        #     x = cross_view(x, self.bev_embedding, feature, I_inv,
+        #                    E_inv, batch['intrinsics'], batch['extrinsics'])
+        #     x = layer(x)
+
+        # return x

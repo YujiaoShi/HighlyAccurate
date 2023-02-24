@@ -368,7 +368,8 @@ def train(net, lr, args, mini_batch, device, save_path):
         for Loop, Data in enumerate(trainloader, 0):
             # get the inputs
 
-            sat_map, left_camera_k, grd_left_imgs, gt_shift_u, gt_shift_v, gt_heading, extrinsics = [item.to(device) for item in Data[:-1]]
+            sat_map, grd_imgs, extrinsics, gt_shift_u, gt_shift_v, gt_heading = [item.to(device) for item in Data[:-2]]
+            intrinsics_dict = Data[-2]
             file_name = Data[-1]
 
             # zero the parameter gradients
@@ -378,23 +379,20 @@ def train(net, lr, args, mini_batch, device, save_path):
             # print("net = ", net)
             # print("args.direction = ", args.direction)
 
-            # goroyeh
-            # Get camera intrinsic
-            intrinsics = left_camera_k
-            # Get camera extrinsic 
 
-
+            print(f'net() : grd_imgs.shape {grd_imgs.shape}')
+            
             if args.direction == 'S2GP':
                 loss, loss_decrease, shift_lat_decrease, shift_lon_decrease, thetas_decrease, loss_last, \
                 shift_lat_last, shift_lon_last, theta_last, \
                 L1_loss, L2_loss, L3_loss, L4_loss, grd_conf_list = \
-                    net(sat_map, grd_left_imgs, gt_shift_u, gt_shift_v, gt_heading, intrinsics, extrinsics, mode='train', file_name=file_name,
+                    net(sat_map, grd_imgs, intrinsics_dict, extrinsics, gt_shift_u, gt_shift_v, gt_heading, mode='train', file_name=file_name,
                         loop=Loop, level_first=args.level_first)
             elif args.direction =='G2SP':
                 loss, loss_decrease, shift_lat_decrease, shift_lon_decrease, thetas_decrease, loss_last, \
                 shift_lat_last, shift_lon_last, theta_last, \
                 L1_loss, L2_loss, L3_loss, L4_loss, grd_conf_list = \
-                    net(sat_map, grd_left_imgs, left_camera_k, gt_shift_u, gt_shift_v, gt_heading, mode='train', file_name=file_name)
+                    net(sat_map, grd_imgs, intrinsics_dict, extrinsics, gt_shift_u, gt_shift_v, gt_heading, mode='train', file_name=file_name)
 
             loss.backward()
 

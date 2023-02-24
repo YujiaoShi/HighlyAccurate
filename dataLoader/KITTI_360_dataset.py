@@ -20,8 +20,10 @@ root_dir = '/mnt/workspace/datasets/kitti-360-SLAM' # '../../data/Kitti' # '../D
 satmap_dir = 'satmap'
 calibration_dir = 'KITTI-360/calibration'
 grdimage_dir = 'KITTI-360/data_2d_raw'
-left_color_camera_dir = 'image_00/data_rect'  # 'image_02\\data' #
-right_color_camera_dir = 'image_01/data_rect'  # 'image_03\\data' #
+perspective_left_color_camera_dir = 'image_00/data_rect'  # 'image_02\\data' #
+perspective_right_color_camera_dir = 'image_01/data_rect'  # 'image_03\\data' #
+fisheye_left_color_camera_dir = 'image_02/data_rgb'  # 'image_02\\data' #
+fisheye_right_color_camera_dir = 'image_03/data_rgb'  # 'image_03\\data' #
 pose_dir = 'KITTI-360/data_poses'
 oxts_dir = 'oxts/data'
 
@@ -37,6 +39,24 @@ train_file = '../../../dataLoader/kitti_360_train.txt'
 test_file = '../../../dataLoader/kitti_360_test.txt'
 
 
+import re
+import yaml
+def readYAMLFile(fileName):
+    '''make OpenCV YAML file compatible with python'''
+    ret = {}
+    skip_lines=1    # Skip the first line which says "%YAML:1.0". Or replace it with "%YAML 1.0"
+    with open(fileName) as fin:
+        for i in range(skip_lines):
+            fin.readline()
+        yamlFileOut = fin.read()
+        myRe = re.compile(r":([^ ])")   # Add space after ":", if it doesn't exist. Python yaml requirement
+        yamlFileOut = myRe.sub(r': \1', yamlFileOut)
+        ret = yaml.load(yamlFileOut,  Loader=yaml.FullLoader)
+    return ret
+
+def load_fisheye_intrinsics_dict(fileName): 
+    fish_cam_dict = readYAMLFile(fileName)
+    return fish_cam_dict
 
 class SatGrdDataset(Dataset):
     def __init__(self, root, file,
@@ -124,8 +144,9 @@ class SatGrdDataset(Dataset):
             extrinsics[i,:,:] = extrinsic
             # print(f'extrinsics: {extrinsic}')
 
-        # =================== read camera intrinsice for left and right cameras ====================
+        # =================== read camera intrinsice for left and right perspective cameras ====================
         calib_file_name = os.path.join(self.root, calibration_dir, 'perspective.txt')
+        intrinsics_dict = {}
         with open(calib_file_name, 'r') as f:
             lines = f.readlines()
             for line in lines:
@@ -140,11 +161,32 @@ class SatGrdDataset(Dataset):
                     fy = float(valus[5]) * GrdImg_H / GrdOriImg_H
                     cy = float(valus[6]) * GrdImg_H / GrdOriImg_H
                     left_camera_k = [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
-                    left_camera_k = torch.from_numpy(np.asarray(left_camera_k, dtype=np.float32))
+                    intrinsics_dict['pcam0'] = torch.from_numpy(np.asarray(left_camera_k, dtype=np.float32))
                     # if not self.stereo:
 
                     # print("left_camera_k = ", left_camera_k)
-                    break
+                    
+                if 'P_rect_01' in line:
+                    # get 3*3 matrix from P_rect_**:
+                    items = line.split(':')
+                    valus = items[1].strip().split(' ')
+                    fx = float(valus[0]) * GrdImg_W / GrdOriImg_W
+                    cx = float(valus[2]) * GrdImg_W / GrdOriImg_W
+                    fy = float(valus[5]) * GrdImg_H / GrdOriImg_H
+                    cy = float(valus[6]) * GrdImg_H / GrdOriImg_H
+                    right_camera_k = [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
+                    intrinsics_dict['pcam1'] = torch.from_numpy(np.asarray(right_camera_k, dtype=np.float32))
+                    # if not self.stereo:
+
+                    # print("left_camera_k = ", left_camera_k)
+                    break                
+
+        # =================== read camera intrinsics_dict for left and right fisheye cameras ====================
+        image02_file_name = os.path.join(self.root, calibration_dir, 'image_02.yaml')
+        intrinsics_dict['fcam2'] = load_fisheye_intrinsics_dict( image02_file_name)
+
+        image03_file_name = os.path.join(self.root, calibration_dir, 'image_03.yaml')
+        intrinsics_dict['fcam3'] = load_fisheye_intrinsics_dict( image03_file_name)
 
         # =================== read satellite map ===================================
         SatMap_name = os.path.join(self.root, self.satmap_dir, drive_dir, image_no.lower())
@@ -152,7 +194,8 @@ class SatGrdDataset(Dataset):
             sat_map = SatMap.convert('RGB')
 
         # =================== initialize some required variables ============================
-        grd_left_imgs = torch.tensor([])
+        # =================== read ground-view images ========================
+        grd_imgs = torch.tensor([])
 
         # oxt: such as 0000000000.txt
         oxts_file_name = os.path.join(self.root, pose_dir, drive_dir, oxts_dir,
@@ -163,13 +206,42 @@ class SatGrdDataset(Dataset):
                 heading = float(content[5])
                 heading = torch.from_numpy(np.asarray(heading))
 
-                left_img_name = os.path.join(self.root, grdimage_dir, drive_dir, left_color_camera_dir,
+                perspective_left_img_name = os.path.join(self.root, grdimage_dir, drive_dir, perspective_left_color_camera_dir,
                                              image_no.lower())
-                with Image.open(left_img_name, 'r') as GrdImg:
+                with Image.open(perspective_left_img_name, 'r') as GrdImg:
                     grd_img_left = GrdImg.convert('RGB')
                     if self.grdimage_transform is not None:
                         grd_img_left = self.grdimage_transform(grd_img_left)
-                grd_left_imgs = torch.cat([grd_left_imgs, grd_img_left.unsqueeze(0)], dim=0)
+                grd_imgs = torch.cat([grd_imgs, grd_img_left.unsqueeze(0)], dim=0)
+
+
+                perspective_right_img_name = os.path.join(self.root, grdimage_dir, drive_dir, perspective_right_color_camera_dir,
+                                             image_no.lower())
+                with Image.open(perspective_right_img_name, 'r') as GrdImg:
+                    grd_img_right = GrdImg.convert('RGB')
+                    if self.grdimage_transform is not None:
+                        grd_img_right = self.grdimage_transform(grd_img_right)
+                grd_imgs = torch.cat([grd_imgs, grd_img_right.unsqueeze(0)], dim=0)
+
+
+                fisheye_left_img_name = os.path.join(self.root, grdimage_dir, drive_dir, fisheye_left_color_camera_dir,
+                                             image_no.lower())
+                with Image.open(fisheye_left_img_name, 'r') as GrdImg:
+                    fisheye_left_img = GrdImg.convert('RGB')
+                    if self.grdimage_transform is not None:
+                        fisheye_left_img = self.grdimage_transform(fisheye_left_img)
+                grd_imgs = torch.cat([grd_imgs, fisheye_left_img.unsqueeze(0)], dim=0)
+
+
+                fisheye_right_img_name = os.path.join(self.root, grdimage_dir, drive_dir, fisheye_right_color_camera_dir,
+                                             image_no.lower())
+                with Image.open(fisheye_right_img_name, 'r') as GrdImg:
+                    fisheye_right_img = GrdImg.convert('RGB')
+                    if self.grdimage_transform is not None:
+                        fisheye_right_img = self.grdimage_transform(fisheye_right_img)
+                grd_imgs = torch.cat([grd_imgs, fisheye_right_img.unsqueeze(0)], dim=0)
+
+
 
         sat_rot = sat_map.rotate(-heading / np.pi * 180)
         sat_align_cam = sat_rot.transform(sat_rot.size, Image.AFFINE,
@@ -202,12 +274,14 @@ class SatGrdDataset(Dataset):
         if self.satmap_transform is not None:
             sat_map = self.satmap_transform(sat_map)
 
+
+
         # grd_left_imgs[0] : shape (3, 256, 1024) (C, H, W)
-        return sat_map, left_camera_k, grd_left_imgs[0], \
+        return sat_map, grd_imgs, extrinsics, \
                torch.tensor(-gt_shift_x, dtype=torch.float32).reshape(1), \
                torch.tensor(-gt_shift_y, dtype=torch.float32).reshape(1), \
                torch.tensor(theta, dtype=torch.float32).reshape(1), \
-               extrinsics, \
+               intrinsics_dict, \
                file_name
 
 

@@ -1170,7 +1170,7 @@ class LM_S2GP(nn.Module):
         theta_new = theta - 0.01 * delta_final[:, 2:3]
         return shift_u_new, shift_v_new, theta_new, m, v
 
-    def forward(self, sat_map, grd_img_left, gt_shiftu=None, gt_shiftv=None, gt_heading=None, intrinsics=None, extrinsics=None,  mode='train',
+    def forward(self, sat_map, grd_imgs, intrinsics_dict, extrinsics, gt_shiftu=None, gt_shiftv=None, gt_heading=None,  mode='train',
                 file_name=None, gt_depth=None, loop=0, level_first=0):
         '''
         :param sat_map: [B, C, A, A] A--> sidelength
@@ -1178,22 +1178,23 @@ class LM_S2GP(nn.Module):
         :return:
         '''
         if level_first:
-            return self.forward_level_first(sat_map, grd_img_left, gt_shiftu, gt_shiftv, gt_heading, intrinsics, extrinsics, mode,
+            return self.forward_level_first(sat_map, grd_imgs, intrinsics_dict, extrinsics, gt_shiftu, gt_shiftv, gt_heading, mode,
                 file_name, gt_depth, loop)
         else:
-            return self.forward_iter_first(sat_map, grd_img_left, gt_shiftu, gt_shiftv, gt_heading, intrinsics, extrinsics,  mode,
+            return self.forward_iter_first(sat_map, grd_imgs, intrinsics_dict, extrinsics, gt_shiftu, gt_shiftv, gt_heading,  mode,
                 file_name, gt_depth, loop)
 
 
-    def forward_iter_first(self, sat_map, grd_img_left, gt_shiftu=None, gt_shiftv=None, gt_heading=None, intrinsics=None, extrinsics=None, mode='train',
+    def forward_iter_first(self, sat_map, grd_imgs, intrinsics_dict, extrinsics, gt_shiftu=None, gt_shiftv=None, gt_heading=None, mode='train',
                 file_name=None, gt_depth=None, loop=0):
         '''
         :param sat_map: [B, C, A, A] A--> sidelength
         :param grd_img_left: [B, C, H, W]
         :return:
         '''
+        print(f'forward_iter_first: grd_imgs.shape {grd_imgs.shape}')
 
-        B, _, ori_grdH, ori_grdW = grd_img_left.shape
+        B, _, ori_grdH, ori_grdW = grd_imgs[0].shape
 
         # A = sat_map.shape[-1]
         # sat_img_proj, _, _, _, _ = self.project_map_to_grd(
@@ -1208,14 +1209,51 @@ class LM_S2GP(nn.Module):
         """
         Input for GrdFeatureNet: dict
         {image: tensor of shape [B,C,A,A],
-         intrinsics: tensor of shape B, N, 3, 3
+         intrinsics_dict: dictionary of length 4 
          extrinsicx: tensor of shape B, N, 4, 4}        
         """
 
         sat_feat_list, sat_conf_list = self.SatFeatureNet(sat_map)
+        
+        for idx, _ in enumerate(sat_feat_list):
+            print(f'level {idx}')
+            print(f'sat_feat_list[{idx}].shape     {sat_feat_list[idx].shape}')
+            print(f'sat_conf_list[{idx}].shape     {sat_conf_list[idx].shape}')
 
-        grdnet_input = {'image': grd_img_left, 'intrinsics': intrinsics, 'extrinsics':extrinsics}
-        grd_feat_list, grd_conf_list = self.GrdFeatureNet(grdnet_input)
+        '''
+            sat_feat_list: a list of tensors 
+                each item: features of this level 
+                sat_feat_list[0].shape     torch.Size([1, 256, 64, 64])
+                sat_conf_list.shape     torch.Size([1, 1, 64, 64])   
+                
+            level 0
+            sat_feat_list[0].shape     torch.Size([1, 256, 64, 64])
+            sat_conf_list[0].shape     torch.Size([1, 1, 64, 64])
+            level 1
+            sat_feat_list[1].shape     torch.Size([1, 128, 128, 128])
+            sat_conf_list[1].shape     torch.Size([1, 1, 128, 128])
+            level 2
+            sat_feat_list[2].shape     torch.Size([1, 64, 256, 256])
+            sat_conf_list[2].shape     torch.Size([1, 1, 256, 256])                
+
+        '''        
+
+        grdnet_input = {'image': grd_imgs, 'intrinsics_dict': intrinsics_dict, 'extrinsics':extrinsics}
+        # grd_feat_list, grd_conf_list = self.GrdFeatureNet(grdnet_input)
+        grd_feat_dict = self.GrdFeatureNet(grdnet_input)
+
+        '''
+            grd_feat_dict: a dictionary of feature given different level
+            Defined in config/model/gkt.yaml 
+            (bev: [0,1])
+            grd_feat_dict['bev']: shape([1,1,200,200]) => shape in 200x200
+
+            TODO: return a list of tensors for grd_feat_list
+            level: 0, 1, 2 => 
+
+        '''
+        print(f'grd_feat_dict["bev]:  {(grd_feat_dict["bev"].shape)}')
+        # print(f'grd_conf_list.shape     {grd_conf_list.shape}')        
 
         # sat_feat_list, sat_conf_list = self.SatFeatureNet(sat_map)
         # grd_feat_list, grd_conf_list = self.GrdFeatureNet(grd_img_left)
@@ -1347,7 +1385,7 @@ class LM_S2GP(nn.Module):
                 os.makedirs(save_dir)
             features_to_RGB(sat_feat_list, grd_feat_list, pred_feat_dict, gt_feat_dict, loop,
                             save_dir)
-            RGB_iterative_pose(sat_map, grd_img_left, shift_lats, shift_lons, thetas, gt_shiftu, gt_shiftv, gt_heading,
+            RGB_iterative_pose(sat_map, grd_imgs, shift_lats, shift_lons, thetas, gt_shiftu, gt_shiftv, gt_heading,
                                self.meters_per_pixel[-1], self.args, loop, save_dir)
 
 
@@ -1373,7 +1411,7 @@ class LM_S2GP(nn.Module):
         else:
             return shift_lats[:, -1, -1], shift_lons[:, -1, -1], thetas[:, -1, -1]
 
-    def forward_level_first(self, sat_map, grd_img_left, gt_shiftu=None, gt_shiftv=None, gt_heading=None, extrinsics=None, mode='train',
+    def forward_level_first(self, sat_map, grd_imgs, intrinsics_dict, extrinsics, gt_shiftu=None, gt_shiftv=None, mode='train',
                 file_name=None, gt_depth=None, loop=0):
         '''
         :param sat_map: [B, C, A, A] A--> sidelength
@@ -1381,7 +1419,7 @@ class LM_S2GP(nn.Module):
         :return:
         '''
 
-        B, _, ori_grdH, ori_grdW = grd_img_left.shape
+        B, _, ori_grdH, ori_grdW = grd_imgs.shape
 
         # A = sat_map.shape[-1]
         # sat_img_proj, _, _, _, _ = self.project_map_to_grd(
@@ -1395,7 +1433,7 @@ class LM_S2GP(nn.Module):
 
         sat_feat_list, sat_conf_list = self.SatFeatureNet(sat_map)
 
-        grd_feat_list, grd_conf_list = self.GrdFeatureNet(grd_img_left)
+        grd_feat_list, grd_conf_list = self.GrdFeatureNet(grd_imgs)
 
         shift_u = torch.zeros([B, 1], dtype=torch.float32, requires_grad=True, device=sat_map.device)
         shift_v = torch.zeros([B, 1], dtype=torch.float32, requires_grad=True, device=sat_map.device)

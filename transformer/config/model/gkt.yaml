@@ -53,6 +53,8 @@ decoder:
   _target_: transformer.cross_view_transformer.model.decoder.Decoder
 
   dim: ${model.encoder.dim}
-  blocks: [128, 128, 64]
+  # blocks: [128, 128, 64]
+  blocks: [128, 128, 256]
+  # level 1: 256, 2: 128, 3: 64
   residual: True
   factor: 2

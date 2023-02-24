@@ -12,7 +12,7 @@ direction: "S2GP"
 rotation_range: 10.
 shift_range_lat: 20.
 shift_range_lon: 20.
-level: 3
+level: 3  # VGGUnet output 3 levels: 0, 1, 2
 N_iters: 5
 Load: 0
 

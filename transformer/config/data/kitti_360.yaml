@@ -15,17 +15,34 @@ cameras: [[0, 1, 2, 3, 4, 5]]
 # and will be grouped into one semantic class (vehicle).
 label_indices: null                                   
 
+# Note: This part can be changed to make it 
+#       comparable with output shape from VGGUnet
+#       level 1: (Dim, H, W) 256 64 64
+#       level 2:             128 128 128
+#       level 3:             64 256 256
+
 # label parameters
+
 bev: 
-  h: 200
-  w: 200
+  h: 64
+  w: 64
   h_meters: 100.0
   w_meters: 100.0
   offset: 0.0
+# bev: 
+#   h: 200
+#   w: 200
+#   h_meters: 100.0
+#   w_meters: 100.0
+#   offset: 0.0
 
 # input parameters (not used in label generation)
 augment: 'none'
+# image:
+#   h: 224
+#   w: 480
+#   top_crop: 46
 image:
-  h: 224
-  w: 480
+  h: 256
+  w: 1024
   top_crop: 46

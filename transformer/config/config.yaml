@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - model: gkt # TODO: Add cvt.CrossViewTransformer
+  - model: gkt 
   - data: kitti_360
   - visualization: null
 
