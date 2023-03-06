@@ -1244,7 +1244,7 @@ class LM_S2GP(nn.Module):
         grd_feat_list = []
         for _ in range(len(grd_feat_dict)):
             grd_feat_list.append(grd_feat_dict['bev'])
-        grd_conf_list = torch.zeros_like(sat_conf_list[0])
+        grd_conf_list = torch.zeros_like(sat_conf_list[0], device=sat_map.device)
 
         '''
             grd_feat_dict: a dictionary of feature given different level
@@ -1261,7 +1261,7 @@ class LM_S2GP(nn.Module):
 
         # sat_feat_list, sat_conf_list = self.SatFeatureNet(sat_map)
         # grd_feat_list, grd_conf_list = self.GrdFeatureNet(grd_img_left)
-
+        # print(f'sat_map.device: {sat_map.device}') # cuda:0
         shift_u = torch.zeros([B, 1], dtype=torch.float32, requires_grad=True, device=sat_map.device)
         shift_v = torch.zeros([B, 1], dtype=torch.float32, requires_grad=True, device=sat_map.device)
         heading = torch.zeros([B, 1], dtype=torch.float32, requires_grad=True, device=sat_map.device)
@@ -1300,7 +1300,7 @@ class LM_S2GP(nn.Module):
                 # sat_feat_proj, sat_conf_proj, dfeat_dpose, sat_uv, mask = self.project_map_to_grd(
                 #     sat_feat, sat_conf, shift_u, shift_v, heading, level, gt_depth=gt_depth)
                 sat_feat_proj = sat_feat      
-                sat_uv        = torch.zeros(1, 1, 1, 2)  
+                sat_uv        = torch.zeros([1, 1, 1, 2], device=sat_map.device)  
                 # [B, C, H, W], [B, 1, H, W], [3, B, C, H, W], [B, H, W, 2]
 
                 # grd_feat = grd_feat * mask[:, None, :, :]
@@ -1326,9 +1326,14 @@ class LM_S2GP(nn.Module):
                 grd_conf_new = grd_conf
                 # print(f'sat_feat.shape {sat_feat.shape}')
                 B, C, H, W = sat_feat.shape
-                dfeat_dpose_new = torch.zeros([3, B, C, H, W]) #dfeat_dpose               
+                dfeat_dpose_new = torch.zeros([3, B, C, H, W], device=shift_u.device) #dfeat_dpose               
 
                 if self.args.Optimizer == 'LM':
+                    # Check devices
+                    # print(f'sat_feat_new.device {sat_feat_new.device}')
+                    # print(f'sat_conf_new.device {sat_conf_new.device}')
+                    # print(f'grd_feat_new.device {grd_feat_new.device}')
+                    # print(f'grd_conf_new.device {grd_conf_new.device}')                   
                     shift_u_new, shift_v_new, heading_new = self.LM_update(shift_u, shift_v, heading,
                                                             sat_feat_new,
                                                             sat_conf_new,

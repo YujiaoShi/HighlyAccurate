@@ -383,6 +383,7 @@ def train(net, lr, args, mini_batch, device, save_path):
             print(f'net() : grd_imgs.shape {grd_imgs.shape}')
             
             if args.direction == 'S2GP':
+                # Check devices for sat_map and grd_imgs
                 loss, loss_decrease, shift_lat_decrease, shift_lon_decrease, thetas_decrease, loss_last, \
                 shift_lat_last, shift_lon_last, theta_last, \
                 L1_loss, L2_loss, L3_loss, L4_loss, grd_conf_list = \
@@ -560,7 +561,7 @@ def getSavePath(args):
 
 
     # TODO: Goro change this for convenience
-    # save_path = '../../../ModelsKitti/'
+    save_path = '../../../ModelsKitti/'
     print(f'save_path: {save_path}, CWD: {Path.cwd()}')
 
     return save_path
