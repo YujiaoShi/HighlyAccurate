@@ -677,7 +677,9 @@ class GeometryKernelEncoder(nn.Module):
         """
         Input batch: dict
         {image: [B,C,A,A],
-         intrinsics: B, N, 3, 3
+         intrinsics_dict: a dictionary of 4 cameras intrinsics information
+            pcam0/pcam1: 3x3 tensors
+            fcam2/fcam3: dictionary of fisheye camera information
          extrinsicx: B, N, 4, 4}
 
         Input image 'batch':
@@ -715,6 +717,7 @@ class GeometryKernelEncoder(nn.Module):
         # Preprocess points (images[2] and images[3[])
 
         images = preprocess_images(images, batch['intrinsics_dict'])
+        # I should be (4, 4, 3, 3)
         I = setup_intrinsics(batch['intrinsics_dict'])
         # print(f'Intrinsics.shape : {I.shape}' )
         # b n 3 3

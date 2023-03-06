@@ -21,7 +21,7 @@ EPS = utils.EPS
 
 # Import transformer modules
 from transformer import *
-from transformer.model.model_module import ModelModule
+from transformer.cross_view_transformer.model.model_module import ModelModule
 import hydra
 from hydra.utils import instantiate
 from omegaconf import OmegaConf, DictConfig

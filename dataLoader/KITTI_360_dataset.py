@@ -366,7 +366,7 @@ class SatGrdDatasetTest(Dataset):
             heading = float(content[5])
             heading = torch.from_numpy(np.asarray(heading))
 
-            left_img_name = os.path.join(self.root, grdimage_dir, drive_dir, left_color_camera_dir,
+            left_img_name = os.path.join(self.root, grdimage_dir, drive_dir, perspective_left_color_camera_dir,
                                          image_no.lower())
             with Image.open(left_img_name, 'r') as GrdImg:
                 grd_img_left = GrdImg.convert('RGB')
