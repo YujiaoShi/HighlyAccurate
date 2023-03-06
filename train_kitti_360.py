@@ -55,7 +55,7 @@ def localize(net_localize, args, mini_batch, device, save_path, best_rank_result
             shifts_lat, shifts_lon, theta = net_localize(sat_map, grd_left_imgs, left_camera_k, mode='test')
 
 
-def test1(mini_batch, net_test, args, save_path, best_rank_result, epoch):
+def test1(mini_batch, net_test, args, save_path, best_rank_result, epoch, device):
     ### net evaluation state
     net_test.eval()
 
@@ -446,7 +446,7 @@ def train(net, lr, args, mini_batch, device, save_path):
         torch.save(net.state_dict(), os.path.join(save_path, 'model_' + str(compNum) + '.pth'))
 
         ### ranking test
-        current = test1(mini_batch, net, args, save_path, bestRankResult, epoch)
+        current = test1(mini_batch, net, args, save_path, bestRankResult, epoch, device)
         if (current > bestRankResult):
             bestRankResult = current
 
@@ -559,7 +559,9 @@ def getSavePath(args):
         save_path += '_Damping' + str(args.damping)
 
 
-    print('save_path:', save_path)
+    # TODO: Goro change this for convenience
+    # save_path = '../../../ModelsKitti/'
+    print(f'save_path: {save_path}, CWD: {Path.cwd()}')
 
     return save_path
 
@@ -583,6 +585,7 @@ def main(cfg):
     mini_batch = cfg.highlyaccurate.batch_size
 
     save_path = getSavePath(cfg.highlyaccurate)
+    print(f'save_path: {save_path}')
 
     net = eval('LM_' + cfg.highlyaccurate.direction)(cfg)
 

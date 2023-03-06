@@ -1,5 +1,5 @@
-resume: 0 
-test: 0 
+resume: 0
+test: 1 
 localize: 0 
 debug: 0 
 epochs: 5 
@@ -46,6 +46,5 @@ beta1: 0.9
 beta2: 0.999
 
 
-
-use_default_model: 0
+use_default_model: 1
 use_transformer: True
