@@ -19,7 +19,9 @@ RUN pip install efficientnet-pytorch==0.7.1
 RUN pip install wandb==0.12.11
 
 # For NVIDIA A100 GPU
-# RUN pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cu113
+RUN pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cu113
+RUN pip install torchtext==0.12.0
+
 # scipy, tensorboard
 # RUN pip install scipy
 # RUN pip install tensorboard
