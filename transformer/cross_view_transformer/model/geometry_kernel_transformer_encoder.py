@@ -606,7 +606,7 @@ def get_fisheye_intrinsics(fish_cam_dict):
     fy = g2
     cx =  float(fish_cam_dict['projection_parameters']['u0'])
     cy =  float(fish_cam_dict['projection_parameters']['v0'])
-    print(f"        fx: {fx}  fy: {fy}  cx: {cx}  cy: {cy}")
+    # print(f"        fx: {fx}  fy: {fy}  cx: {cx}  cy: {cy}")
     return torch.tensor([[fx, 0,  cx], [0, fy, cy], [0, 0, 1]])
  
     return intrinsic 
@@ -695,10 +695,10 @@ class GeometryKernelEncoder(nn.Module):
         # b n c h w
         images = batch['image'].flatten(0, 1)
 
-        print("GKT Encoder: ")
-        print(f'    Grd Img shape: {batch["image"].shape}' )
-        print(f'    Intrinsics_dict len: {len(batch["intrinsics_dict"])}' )
-        print(f'    Extrinsics shape: {batch["extrinsics"].shape}' )
+        # print("GKT Encoder: ")
+        # print(f'    Grd Img shape: {batch["image"].shape}' )
+        # print(f'    Intrinsics_dict len: {len(batch["intrinsics_dict"])}' )
+        # print(f'    Extrinsics shape: {batch["extrinsics"].shape}' )
         """
         => TODO: Make shape be:
         Img: b, n, c, h, w => 1, 4, 3, 256, 1024
@@ -719,6 +719,7 @@ class GeometryKernelEncoder(nn.Module):
         images = preprocess_images(images, batch['intrinsics_dict'])
         # I should be (4, 4, 3, 3)
         I = setup_intrinsics(batch['intrinsics_dict'])
+        I = I.to(batch['extrinsics'].device)
         # print(f'Intrinsics.shape : {I.shape}' )
         # b n 3 3
         I_inv = I.inverse()
@@ -742,9 +743,9 @@ class GeometryKernelEncoder(nn.Module):
         x = repeat(x, '... -> b ...', b=b)
 
 
-        # 02/23 TODO: Error here!
         for cross_view, feature, layer in zip(self.cross_views, features, self.layers):
             feature = rearrange(feature, '(b n) ... -> b n ...', b=b, n=n)
+            # Check devices (I_inv and E_inv should be all cuda:0)
             x = cross_view(x, self.bev_embedding, feature, I_inv,
                            E_inv, I, batch['extrinsics'])
             x = layer(x)
