@@ -85,8 +85,14 @@ def test1(mini_batch, net_test, args, save_path, best_rank_result, epoch, device
         headings = theta.unsqueeze(dim=-1)
         # shifts: [B, 2]
         # headings: [B, 1]
+        # print(f'shifts_lat.shape {shifts_lat.shape}') # [4]
+        # print(f'shifts_lon.shape {shifts_lon.shape}') # [4]
+        # print(f'shifts.shape {shifts.shape}')         # [4,2]
 
         gt_shift = torch.cat([gt_shift_v, gt_shift_u], dim=-1)  # [B, 2]
+        # print(f'gt_shift_u.shape {gt_shift_u.shape}') # [1,1]
+        # print(f'gt_shift_v.shape {gt_shift_v.shape}') # [1,1]
+        # print(f'gt_shift.shape {gt_shift.shape}')     # [1, 2]
 
         if args.shift_range_lat==0 and args.shift_range_lon==0:
             loss = torch.mean(headings - gt_heading)
@@ -97,7 +103,7 @@ def test1(mini_batch, net_test, args, save_path, best_rank_result, epoch, device
         pred_shifts.append(shifts.data.cpu().numpy())
         pred_headings.append(headings.data.cpu().numpy())
         gt_shifts.append(gt_shift.data.cpu().numpy())
-        gt_headings.append(gt_heading.data.cpu().numpy())
+        gt_headings.append(gt_heading.data.cpu().numpy())        
 
         if i % 20 == 0:
             print(i)
@@ -109,6 +115,9 @@ def test1(mini_batch, net_test, args, save_path, best_rank_result, epoch, device
     pred_headings = np.concatenate(pred_headings, axis=0) * args.rotation_range
     gt_shifts = np.concatenate(gt_shifts, axis=0) * np.array([args.shift_range_lat, args.shift_range_lon]).reshape(1, 2)
     gt_headings = np.concatenate(gt_headings, axis=0) * args.rotation_range
+       
+    print(f'gt_shifts.shape {gt_shifts.shape}')     # (200, 2)
+    print(f'pred_shifts.shape {pred_shifts.shape}') # (800, 2)
 
     scio.savemat(os.path.join(save_path, 'Test1_results.mat'), {'gt_shifts': gt_shifts, 'gt_headings': gt_headings,
                                                          'pred_shifts': pred_shifts, 'pred_headings': pred_headings})
@@ -387,7 +396,7 @@ def train(net, lr, args, mini_batch, device, save_path):
             # print("args.direction = ", args.direction)
 
 
-            print(f'net() : grd_imgs.shape {grd_imgs.shape}')
+            # print(f'net() : grd_imgs.shape {grd_imgs.shape}')
             
             if args.direction == 'S2GP':
                 # Check devices for sat_map and grd_imgs

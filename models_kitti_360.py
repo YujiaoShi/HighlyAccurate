@@ -356,6 +356,9 @@ class LM_G2SP(nn.Module):
             dfeat_dpose: [3, B, C, H, W]
 
         Returns:
+            shift_u_new [B, 1]
+            shift_v_new [B, 1]
+            heading_new [B, 1]
         '''
 
         N, B, C, H, W = dfeat_dpose.shape
@@ -1192,19 +1195,6 @@ class LM_S2GP(nn.Module):
         :param grd_img_left: [B, C, H, W]
         :return:
         '''
-        print(f'forward_iter_first: grd_imgs.shape {grd_imgs.shape}')
-
-        B, _, ori_grdH, ori_grdW = grd_imgs[0].shape
-
-        # A = sat_map.shape[-1]
-        # sat_img_proj, _, _, _, _ = self.project_map_to_grd(
-        #     grd_img_left, None, gt_shiftu, gt_shiftv, gt_heading, level=3, require_jac=True, gt_depth=gt_depth)
-        # sat_img = transforms.ToPILImage()(sat_img_proj[0])
-        # sat_img.save('sat_proj.png')
-        # grd = transforms.ToPILImage()(grd_img_left[0])
-        # grd.save('grd.png')
-        # sat = transforms.ToPILImage()(sat_map[0])
-        # sat.save('sat.png')
 
         """
         Input for GrdFeatureNet: dict
@@ -1215,10 +1205,10 @@ class LM_S2GP(nn.Module):
 
         sat_feat_list, sat_conf_list = self.SatFeatureNet(sat_map)
         
-        for idx, _ in enumerate(sat_feat_list):
-            print(f'level {idx}')
-            print(f'sat_feat_list[{idx}].shape     {sat_feat_list[idx].shape}')
-            print(f'sat_conf_list[{idx}].shape     {sat_conf_list[idx].shape}')
+        # for idx, _ in enumerate(sat_feat_list):
+        #     print(f'level {idx}')
+        #     print(f'sat_feat_list[{idx}].shape     {sat_feat_list[idx].shape}')
+        #     print(f'sat_conf_list[{idx}].shape     {sat_conf_list[idx].shape}')
 
         '''
             sat_feat_list: a list of tensors 
@@ -1226,15 +1216,15 @@ class LM_S2GP(nn.Module):
                 sat_feat_list[0].shape     torch.Size([1, 256, 64, 64])
                 sat_conf_list.shape     torch.Size([1, 1, 64, 64])   
                 
-            level 0
-            sat_feat_list[0].shape     torch.Size([1, 256, 64, 64])
-            sat_conf_list[0].shape     torch.Size([1, 1, 64, 64])
-            level 1
-            sat_feat_list[1].shape     torch.Size([1, 128, 128, 128])
-            sat_conf_list[1].shape     torch.Size([1, 1, 128, 128])
-            level 2
-            sat_feat_list[2].shape     torch.Size([1, 64, 256, 256])
-            sat_conf_list[2].shape     torch.Size([1, 1, 256, 256])                
+                level 0
+                sat_feat_list[0].shape     torch.Size([1, 256, 64, 64])
+                sat_conf_list[0].shape     torch.Size([1, 1, 64, 64])
+                level 1
+                sat_feat_list[1].shape     torch.Size([1, 128, 128, 128])
+                sat_conf_list[1].shape     torch.Size([1, 1, 128, 128])
+                level 2
+                sat_feat_list[2].shape     torch.Size([1, 64, 256, 256])
+                sat_conf_list[2].shape     torch.Size([1, 1, 256, 256])                
 
         '''        
 
@@ -1256,12 +1246,13 @@ class LM_S2GP(nn.Module):
             level: 0, 1, 2 => 
 
         '''
-        print(f'grd_feat_dict["bev]:  {(grd_feat_dict["bev"].shape)}')
+        # print(f'grd_feat_dict["bev]:  {(grd_feat_dict["bev"].shape)}') # (1, 256, 64, 64)
         # print(f'grd_conf_list.shape     {grd_conf_list.shape}')        
 
         # sat_feat_list, sat_conf_list = self.SatFeatureNet(sat_map)
         # grd_feat_list, grd_conf_list = self.GrdFeatureNet(grd_img_left)
         # print(f'sat_map.device: {sat_map.device}') # cuda:0
+        B, C, H, W = sat_feat_list[0].shape
         shift_u = torch.zeros([B, 1], dtype=torch.float32, requires_grad=True, device=sat_map.device)
         shift_v = torch.zeros([B, 1], dtype=torch.float32, requires_grad=True, device=sat_map.device)
         heading = torch.zeros([B, 1], dtype=torch.float32, requires_grad=True, device=sat_map.device)
@@ -1325,15 +1316,11 @@ class LM_S2GP(nn.Module):
                 grd_feat_new = grd_feat
                 grd_conf_new = grd_conf
                 # print(f'sat_feat.shape {sat_feat.shape}')
-                B, C, H, W = sat_feat.shape
+                # B, C, H, W = sat_feat.shape
                 dfeat_dpose_new = torch.zeros([3, B, C, H, W], device=shift_u.device) #dfeat_dpose               
 
                 if self.args.Optimizer == 'LM':
-                    # Check devices
-                    # print(f'sat_feat_new.device {sat_feat_new.device}')
-                    # print(f'sat_conf_new.device {sat_conf_new.device}')
-                    # print(f'grd_feat_new.device {grd_feat_new.device}')
-                    # print(f'grd_conf_new.device {grd_conf_new.device}')                   
+                    # Check devices                 
                     shift_u_new, shift_v_new, heading_new = self.LM_update(shift_u, shift_v, heading,
                                                             sat_feat_new,
                                                             sat_conf_new,
