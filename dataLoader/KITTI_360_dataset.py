@@ -330,11 +330,55 @@ class SatGrdDatasetTest(Dataset):
         # print("drive_dir = ", drive_dir)
         # print("image_no = ", image_no)
 
-        # =================== read camera intrinsice for left and right cameras ====================
+
+        # extrinsics = cam2imu @ imu2world (pose.txt)
+        # =================== read camera to imu transform for two front cams and left/right fishcams
+        cam2pose_file_name = os.path.join(self.root, calibration_dir, 'calib_cam_to_pose.txt') # From cam to GPS/IMU
+        cam2imus = []
+        with open(cam2pose_file_name, 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                items = line.split(':')
+                # print(f'read line: {line}')
+                values = items[1].strip().split(' ')
+                values = [float(val) for val in values]
+                
+                cam2imu = torch.tensor([
+                            [values[0],values[1],values[2], values[3]],
+                            [values[4],values[5],values[6], values[7]],
+                            [values[8],values[9],values[10], values[11]],
+                            [        0,       0,         0,         1]])
+                cam2imus.append(cam2imu)
+
+        imu2world_file_name = os.path.join(self.root, pose_dir, drive_dir, 'poses.txt')
+        # Get pose.txt raw[idx]
+        with open(imu2world_file_name, 'r') as f:
+            lines = f.readlines()
+            target_row = lines[idx]
+            values = target_row.strip().split(' ')
+            values = [float(val) for val in values]
+            # print(f'target_row {target_row}')
+  
+            imu2world_matrix = torch.tensor([
+                [values[1], values[2], values[3], values[4]],
+                [values[5], values[6], values[7], values[8]],
+                [values[9], values[10], values[11], values[12]],
+                [       0,         0,         0,            1]
+            ])
+
+        extrinsics = torch.zeros([4,4,4]) # Goal: (4, 4, 4) 4 cameras, (4x4)
+        for i, cam2imu in  enumerate(cam2imus):
+            extrinsic = cam2imu @ imu2world_matrix
+            extrinsics[i,:,:] = extrinsic
+            # print(f'extrinsics: {extrinsic}')
+
+        # =================== read camera intrinsice for left and right perspective cameras ====================
         calib_file_name = os.path.join(self.root, calibration_dir, 'perspective.txt')
+        intrinsics_dict = {}
         with open(calib_file_name, 'r') as f:
             lines = f.readlines()
             for line in lines:
+                # print("line = ", line)
                 # left color camera k matrix
                 if 'P_rect_00' in line:
                     # get 3*3 matrix from P_rect_**:
@@ -345,35 +389,84 @@ class SatGrdDatasetTest(Dataset):
                     fy = float(valus[5]) * GrdImg_H / GrdOriImg_H
                     cy = float(valus[6]) * GrdImg_H / GrdOriImg_H
                     left_camera_k = [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
-                    left_camera_k = torch.from_numpy(np.asarray(left_camera_k, dtype=np.float32))
+                    intrinsics_dict['pcam0'] = torch.from_numpy(np.asarray(left_camera_k, dtype=np.float32))
                     # if not self.stereo:
-                    break
+
+                    # print("left_camera_k = ", left_camera_k)
+                    
+                if 'P_rect_01' in line:
+                    # get 3*3 matrix from P_rect_**:
+                    items = line.split(':')
+                    valus = items[1].strip().split(' ')
+                    fx = float(valus[0]) * GrdImg_W / GrdOriImg_W
+                    cx = float(valus[2]) * GrdImg_W / GrdOriImg_W
+                    fy = float(valus[5]) * GrdImg_H / GrdOriImg_H
+                    cy = float(valus[6]) * GrdImg_H / GrdOriImg_H
+                    right_camera_k = [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
+                    intrinsics_dict['pcam1'] = torch.from_numpy(np.asarray(right_camera_k, dtype=np.float32))
+                    # if not self.stereo:
+
+                    # print("left_camera_k = ", left_camera_k)
+                    break                
+
+        # =================== read camera intrinsics_dict for left and right fisheye cameras ====================
+        image02_file_name = os.path.join(self.root, calibration_dir, 'image_02.yaml')
+        intrinsics_dict['fcam2'] = load_fisheye_intrinsics_dict( image02_file_name)
+
+        image03_file_name = os.path.join(self.root, calibration_dir, 'image_03.yaml')
+        intrinsics_dict['fcam3'] = load_fisheye_intrinsics_dict( image03_file_name)
 
         # =================== read satellite map ===================================
         SatMap_name = os.path.join(self.root, self.satmap_dir, drive_dir, image_no.lower())
         with Image.open(SatMap_name, 'r') as SatMap:
             sat_map = SatMap.convert('RGB')
 
-        # =================== initialize some required variables ============================
-        grd_left_imgs = torch.tensor([])
+        # =================== read ground-view images ========================
+        grd_imgs = torch.tensor([])
 
         # oxt: such as 0000000000.txt
         oxts_file_name = os.path.join(self.root, pose_dir, drive_dir, oxts_dir,
                                       image_no.lower().replace('.png', '.txt'))
         with open(oxts_file_name, 'r') as f:
-            content = f.readline().split(' ')
-            # get heading
-            heading = float(content[5])
-            heading = torch.from_numpy(np.asarray(heading))
+                content = f.readline().split(' ')
+                # get heading
+                heading = float(content[5])
+                heading = torch.from_numpy(np.asarray(heading))
 
-            left_img_name = os.path.join(self.root, grdimage_dir, drive_dir, perspective_left_color_camera_dir,
-                                         image_no.lower())
-            with Image.open(left_img_name, 'r') as GrdImg:
-                grd_img_left = GrdImg.convert('RGB')
-                if self.grdimage_transform is not None:
-                    grd_img_left = self.grdimage_transform(grd_img_left)
+                perspective_left_img_name = os.path.join(self.root, grdimage_dir, drive_dir, perspective_left_color_camera_dir,
+                                             image_no.lower())
+                with Image.open(perspective_left_img_name, 'r') as GrdImg:
+                    grd_img_left = GrdImg.convert('RGB')
+                    if self.grdimage_transform is not None:
+                        grd_img_left = self.grdimage_transform(grd_img_left)
+                grd_imgs = torch.cat([grd_imgs, grd_img_left.unsqueeze(0)], dim=0)
 
-            grd_left_imgs = torch.cat([grd_left_imgs, grd_img_left.unsqueeze(0)], dim=0)
+
+                perspective_right_img_name = os.path.join(self.root, grdimage_dir, drive_dir, perspective_right_color_camera_dir,
+                                             image_no.lower())
+                with Image.open(perspective_right_img_name, 'r') as GrdImg:
+                    grd_img_right = GrdImg.convert('RGB')
+                    if self.grdimage_transform is not None:
+                        grd_img_right = self.grdimage_transform(grd_img_right)
+                grd_imgs = torch.cat([grd_imgs, grd_img_right.unsqueeze(0)], dim=0)
+
+
+                fisheye_left_img_name = os.path.join(self.root, grdimage_dir, drive_dir, fisheye_left_color_camera_dir,
+                                             image_no.lower())
+                with Image.open(fisheye_left_img_name, 'r') as GrdImg:
+                    fisheye_left_img = GrdImg.convert('RGB')
+                    if self.grdimage_transform is not None:
+                        fisheye_left_img = self.grdimage_transform(fisheye_left_img)
+                grd_imgs = torch.cat([grd_imgs, fisheye_left_img.unsqueeze(0)], dim=0)
+
+
+                fisheye_right_img_name = os.path.join(self.root, grdimage_dir, drive_dir, fisheye_right_color_camera_dir,
+                                             image_no.lower())
+                with Image.open(fisheye_right_img_name, 'r') as GrdImg:
+                    fisheye_right_img = GrdImg.convert('RGB')
+                    if self.grdimage_transform is not None:
+                        fisheye_right_img = self.grdimage_transform(fisheye_right_img)
+                grd_imgs = torch.cat([grd_imgs, fisheye_right_img.unsqueeze(0)], dim=0)
 
         sat_rot = sat_map.rotate(-heading / np.pi * 180)
         sat_align_cam = sat_rot.transform(sat_rot.size, Image.AFFINE,
@@ -409,11 +502,17 @@ class SatGrdDatasetTest(Dataset):
         if self.satmap_transform is not None:
             sat_map = self.satmap_transform(sat_map)
 
-        return sat_map, left_camera_k, grd_left_imgs[0], \
+        return sat_map, grd_imgs, extrinsics, \
                torch.tensor(-gt_shift_x, dtype=torch.float32).reshape(1), \
                torch.tensor(-gt_shift_y, dtype=torch.float32).reshape(1), \
                torch.tensor(theta, dtype=torch.float32).reshape(1), \
+               intrinsics_dict, \
                file_name
+        # return sat_map, left_camera_k, grd_left_imgs[0], \
+        #        torch.tensor(-gt_shift_x, dtype=torch.float32).reshape(1), \
+        #        torch.tensor(-gt_shift_y, dtype=torch.float32).reshape(1), \
+        #        torch.tensor(theta, dtype=torch.float32).reshape(1), \
+        #        file_name
 
 
 class SatGrdDatasetLocalize(Dataset):

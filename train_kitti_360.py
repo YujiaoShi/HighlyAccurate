@@ -67,12 +67,19 @@ def test1(mini_batch, net_test, args, save_path, best_rank_result, epoch, device
 
     start_time = time.time()
     for i, data in enumerate(dataloader, 0):
-        sat_map, left_camera_k, grd_left_imgs, gt_shift_u, gt_shift_v, gt_heading = [item.to(device) for item in data[:-1]]
+        # TODO:
+        # 1. Load grd_imgs, extrinsics and intrinsic_dict from test data (modify load_test_data)
+        # 2. Pass these to inference       
+        # sat_map, left_camera_k, grd_left_imgs, gt_shift_u, gt_shift_v, gt_heading = [item.to(device) for item in data[:-1]]
+        sat_map, grd_imgs, extrinsics, gt_shift_u, gt_shift_v, gt_heading = [item.to(device) for item in data[:-2]]
+        intrinsics_dict = data[-2]
+        file_name = data[-1]
 
-        if args.direction == 'S2GP':
-            shifts_lat, shifts_lon, theta = net_test(sat_map, grd_left_imgs, mode='test')
+        if args.direction == 'S2GP':   
+            shifts_lat, shifts_lon, theta = net_test(sat_map, grd_imgs, intrinsics_dict, extrinsics,  mode='test')     
+            # shifts_lat, shifts_lon, theta = net_test(sat_map, grd_imgs, mode='test')
         elif args.direction == 'G2SP':
-            shifts_lat, shifts_lon, theta = net_test(sat_map, grd_left_imgs, left_camera_k, mode='test')
+            shifts_lat, shifts_lon, theta = net_test(sat_map, grd_imgs, intrinsics_dict, mode='test')
 
         shifts = torch.stack([shifts_lat, shifts_lon], dim=-1)
         headings = theta.unsqueeze(dim=-1)
@@ -446,7 +453,7 @@ def train(net, lr, args, mini_batch, device, save_path):
 
         torch.save(net.state_dict(), os.path.join(save_path, 'model_' + str(compNum) + '.pth'))
 
-        ### ranking test
+        ### ranking test        
         current = test1(mini_batch, net, args, save_path, bestRankResult, epoch, device)
         if (current > bestRankResult):
             bestRankResult = current

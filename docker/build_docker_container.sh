@@ -17,4 +17,4 @@ docker run -it --net=host --shm-size 8G --gpus all  \
   --device=/dev/dri:/dev/dri \
   --name=${container_name} \
   --security-opt seccomp=unconfined \
-  satellite_slam/pytorch_env:latest
+  satellite_slam_gkt/pytorch_env:latest
