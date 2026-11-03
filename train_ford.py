@@ -483,7 +483,7 @@ if __name__ == '__main__':
     ###########################
 
     if args.test:
-        net.load_state_dict(torch.load(os.path.join(save_path, 'Model_best.pth')))
+        net.load_state_dict(torch.load(os.path.join(save_path, 'Model_best.pth'), weights_only=True))
         # net.load_state_dict(torch.load('./Models/sequence4_stereo0_fuse0_corrTrue_batch8_loss1_GRUdir2_GRUlayers1/stage_1/Model_best.pth'))
         test1(net, args, save_path, 0., args.train_log_start)
 
@@ -491,13 +491,13 @@ if __name__ == '__main__':
     else:
 
         if args.resume:
-            net.load_state_dict(torch.load(os.path.join(save_path, 'model_' + str(args.resume - 1) + '.pth')))
+            net.load_state_dict(torch.load(os.path.join(save_path, 'model_' + str(args.resume - 1) + '.pth'), weights_only=True))
             print("resume from " + 'model_' + str(args.resume - 1) + '.pth')
 
         else:
             # if args.Load:
             if restore_path:
-                save_dict = torch.load(os.path.join(restore_path, 'Model_best.pth'))
+                save_dict = torch.load(os.path.join(restore_path, 'Model_best.pth'), weights_only=True)
                 net_dict = net.state_dict()
                 state_dict = {k: v for k, v in save_dict.items() if
                               k in net_dict.keys() and net_dict[k].size() == save_dict[k].size()}
@@ -513,7 +513,7 @@ if __name__ == '__main__':
         lr = args.lr
 
         if args.visualize:
-            net.load_state_dict(torch.load(os.path.join(save_path, 'Model_best.pth')))
+            net.load_state_dict(torch.load(os.path.join(save_path, 'Model_best.pth'), weights_only=True))
 
         train(lr, args, save_path, train_log_start=args.train_log_start, train_log_end=args.train_log_end)
 
